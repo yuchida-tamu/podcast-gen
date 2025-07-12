@@ -9,6 +9,9 @@ describe('CLI - generatePodcast', () => {
   let mockAudioSynthesizer: any;
 
   beforeEach(() => {
+    // Set up environment variable for AnthropicService
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-for-testing';
+    
     // Mock class instances
     mockMonologueEngine = {
       generateMonologue: vi.fn().mockResolvedValue([

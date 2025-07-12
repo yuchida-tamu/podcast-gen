@@ -1,4 +1,3 @@
-import { AnthropicService } from '../llm/AnthropicService.js';
 import type {
   LLMRequest,
   LLMService,
@@ -14,8 +13,8 @@ export class MonologueEngine {
   private narrator: NarratorConfig;
   private previousContent: MonologueSegment[];
 
-  constructor(llmClient?: LLMService) {
-    this.llmClient = llmClient || new AnthropicService();
+  constructor(llmClient: LLMService) {
+    this.llmClient = llmClient;
 
     this.narrator = {
       name: 'Narrator',

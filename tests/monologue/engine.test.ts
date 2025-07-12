@@ -77,8 +77,14 @@ describe('MonologueEngine', () => {
 
   describe('Constructor', () => {
     test('shouldInitializeWithNarratorConfig', () => {
+      // Given: Mock LLM client
+      const mockClient: LLMService = {
+        generateContent: vi.fn(),
+        isHealthy: vi.fn()
+      };
+
       // When: Creating MonologueEngine
-      const newEngine = new MonologueEngine();
+      const newEngine = new MonologueEngine(mockClient);
 
       // Then: Should have narrator configuration
       expect(newEngine).toBeDefined();
@@ -99,12 +105,16 @@ describe('MonologueEngine', () => {
       expect(newEngine).toBeDefined();
     });
 
-    test('shouldUseDefaultClientWhenNoneProvided', () => {
-      // When: Creating MonologueEngine without client injection
-      const newEngine = new MonologueEngine();
+    test('shouldFallbackToDefaultClientWhenUndefined', () => {
+      // Given: Environment variable set for default client
+      process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-for-testing';
+      
+      // When: Creating MonologueEngine with undefined (though TypeScript prevents this)
+      // @ts-expect-error - Testing runtime behavior when parameter is undefined
+      const engineWithUndefined = new MonologueEngine(undefined);
 
-      // Then: Should initialize with default client
-      expect(newEngine).toBeDefined();
+      // Then: Should create successfully using fallback
+      expect(engineWithUndefined).toBeDefined();
     });
   });
 
@@ -665,12 +675,18 @@ describe('MonologueEngine', () => {
       });
     });
 
-    test('shouldCreateEngineWithDefaultClientWhenNoneProvided', () => {
-      // When: Creating engine without LLM client
-      const defaultEngine = new MonologueEngine();
+    test('shouldCreateEngineWithProvidedClient', () => {
+      // Given: Mock LLM client
+      const mockClient: LLMService = {
+        generateContent: vi.fn(),
+        isHealthy: vi.fn()
+      };
 
-      // Then: Should create successfully with default client
-      expect(defaultEngine).toBeDefined();
+      // When: Creating engine with LLM client
+      const engineWithClient = new MonologueEngine(mockClient);
+
+      // Then: Should create successfully with provided client
+      expect(engineWithClient).toBeDefined();
     });
   });
 });

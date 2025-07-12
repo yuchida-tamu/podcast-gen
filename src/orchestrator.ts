@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { AudioSynthesizer } from './audio/synthesizer.js';
+import { AnthropicService } from './llm/AnthropicService.js';
 import { MonologueEngine } from './monologue/engine.js';
 import { ScriptFormatter } from './script/formatter.js';
 import { CliOptions } from './types';
@@ -73,7 +74,8 @@ export async function generatePodcast(
   await deps.fs.ensureDir(outputDir);
 
   // Initialize engines
-  const monologueEngine = new deps.MonologueEngine();
+  const llmService = new AnthropicService();
+  const monologueEngine = new deps.MonologueEngine(llmService);
   const scriptFormatter = new deps.ScriptFormatter();
   const audioSynthesizer = new deps.AudioSynthesizer();
 
