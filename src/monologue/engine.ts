@@ -1,4 +1,4 @@
-import { AnthropicService } from '../llm/AnthropicClient.js';
+import { AnthropicService } from '../llm/AnthropicService.js';
 import type {
   LLMRequest,
   LLMService,
