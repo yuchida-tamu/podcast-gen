@@ -6,20 +6,42 @@ import {
   LLMRateLimitError,
   LLMNetworkError,
   type APIClientConfig,
+  type LLMRequest,
+  type LLMResponse,
 } from '../../src/types/index.js';
 
 // Create a concrete implementation for testing
 class TestAPIClient extends APIClient {
+  private mockFetchFn?: (request: LLMRequest) => Promise<LLMResponse>;
+
   constructor(config?: Partial<APIClientConfig>) {
     super(config);
   }
 
+  // Implement the abstract fetch method
+  protected async fetch(request: LLMRequest): Promise<LLMResponse> {
+    if (this.mockFetchFn) {
+      return this.mockFetchFn(request);
+    }
+    // Default mock response
+    return {
+      content: 'Mock response',
+      usage: {
+        promptTokens: 10,
+        completionTokens: 10,
+        totalTokens: 20
+      }
+    };
+  }
+
+  // Allow setting mock fetch function for testing
+  public setMockFetch(fn: (request: LLMRequest) => Promise<LLMResponse>) {
+    this.mockFetchFn = fn;
+  }
+
   // Expose protected method for testing
-  public async testExecuteWithRetry<T>(
-    operation: () => Promise<T>,
-    errorHandler: (error: any) => LLMError
-  ): Promise<T> {
-    return this.executeWithRetry(operation, errorHandler);
+  public async testExecuteWithRetry(request: LLMRequest): Promise<LLMResponse> {
+    return this.executeWithRetry(request);
   }
 
   // Expose protected method for testing
@@ -58,87 +80,127 @@ describe('APIClient', () => {
 
   describe('executeWithRetry', () => {
     test('shouldReturnResultOnFirstSuccess', async () => {
-      const expectedResult = 'success';
-      const operation = vi.fn().mockResolvedValue(expectedResult);
-      const errorHandler = vi.fn();
+      const expectedResponse: LLMResponse = {
+        content: 'success',
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 }
+      };
+      const mockFetch = vi.fn().mockResolvedValue(expectedResponse);
+      apiClient.setMockFetch(mockFetch);
 
-      const result = await apiClient.testExecuteWithRetry(operation, errorHandler);
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
+      
+      const result = await apiClient.testExecuteWithRetry(testRequest);
 
-      expect(result).toBe(expectedResult);
-      expect(operation).toHaveBeenCalledTimes(1);
-      expect(errorHandler).not.toHaveBeenCalled();
+      expect(result).toEqual(expectedResponse);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledWith(testRequest);
     });
 
     test('shouldRetryOnRetryableError', async () => {
-      const expectedResult = 'success after retry';
-      const retryableError = new LLMRateLimitError('Rate limit exceeded');
-      const operation = vi.fn()
-        .mockRejectedValueOnce(new Error('Retryable error'))
-        .mockResolvedValue(expectedResult);
+      const expectedResponse: LLMResponse = {
+        content: 'success after retry',
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 }
+      };
       
-      const errorHandler = vi.fn().mockReturnValue(retryableError);
+      const rateLimitError = new Error('Rate limit exceeded');
+      (rateLimitError as any).status = 429;
+      
+      const mockFetch = vi.fn()
+        .mockRejectedValueOnce(rateLimitError)
+        .mockResolvedValue(expectedResponse);
+      
+      apiClient.setMockFetch(mockFetch);
 
-      const result = await apiClient.testExecuteWithRetry(operation, errorHandler);
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
+      
+      const result = await apiClient.testExecuteWithRetry(testRequest);
 
-      expect(result).toBe(expectedResult);
-      expect(operation).toHaveBeenCalledTimes(2);
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expectedResponse);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     test('shouldNotRetryOnAuthenticationError', async () => {
-      const authError = new LLMAuthenticationError('Authentication failed');
-      const operation = vi.fn().mockRejectedValue(new Error('Auth error'));
-      const errorHandler = vi.fn().mockReturnValue(authError);
+      const authError = new Error('Authentication failed');
+      (authError as any).status = 401;
+      
+      const mockFetch = vi.fn().mockRejectedValue(authError);
+      apiClient.setMockFetch(mockFetch);
+
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
 
       await expect(
-        apiClient.testExecuteWithRetry(operation, errorHandler)
+        apiClient.testExecuteWithRetry(testRequest)
       ).rejects.toThrow(LLMAuthenticationError);
 
-      expect(operation).toHaveBeenCalledTimes(1);
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     test('shouldNotRetryOnNonRetryableError', async () => {
-      const nonRetryableError = new LLMError('Non-retryable error', 'NON_RETRYABLE', false);
-      const operation = vi.fn().mockRejectedValue(new Error('Non-retryable error'));
-      const errorHandler = vi.fn().mockReturnValue(nonRetryableError);
+      const nonRetryableError = new Error('Non-retryable error');
+      const mockFetch = vi.fn().mockRejectedValue(nonRetryableError);
+      apiClient.setMockFetch(mockFetch);
+
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
 
       await expect(
-        apiClient.testExecuteWithRetry(operation, errorHandler)
+        apiClient.testExecuteWithRetry(testRequest)
       ).rejects.toThrow(LLMError);
 
-      expect(operation).toHaveBeenCalledTimes(1);
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     test('shouldThrowAfterMaxRetries', async () => {
-      const retryableError = new LLMNetworkError('Network error');
-      const operation = vi.fn().mockRejectedValue(new Error('Network error'));
-      const errorHandler = vi.fn().mockReturnValue(retryableError);
-
+      const networkError = new Error('Network error');
+      (networkError as any).status = 500;
+      
+      const mockFetch = vi.fn().mockRejectedValue(networkError);
+      
       // Use small retry count for faster test
       const clientWithFewRetries = new TestAPIClient({ retries: 2 });
+      clientWithFewRetries.setMockFetch(mockFetch);
+
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
 
       await expect(
-        clientWithFewRetries.testExecuteWithRetry(operation, errorHandler)
+        clientWithFewRetries.testExecuteWithRetry(testRequest)
       ).rejects.toThrow(LLMNetworkError);
 
-      expect(operation).toHaveBeenCalledTimes(2);
-      expect(errorHandler).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     test('shouldThrowWrappedErrorWhenAllRetriesExhausted', async () => {
-      const operation = vi.fn().mockRejectedValue(new Error('Persistent error'));
-      const errorHandler = vi.fn().mockReturnValue(new LLMNetworkError('Network error'));
-
+      const persistentError = new Error('Persistent error');
+      (persistentError as any).status = 500;
+      
+      const mockFetch = vi.fn().mockRejectedValue(persistentError);
       const clientWithFewRetries = new TestAPIClient({ retries: 1 });
+      clientWithFewRetries.setMockFetch(mockFetch);
+
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
 
       await expect(
-        clientWithFewRetries.testExecuteWithRetry(operation, errorHandler)
+        clientWithFewRetries.testExecuteWithRetry(testRequest)
       ).rejects.toThrow(LLMNetworkError);
 
-      expect(operation).toHaveBeenCalledTimes(1);
-      expect(errorHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -257,14 +319,19 @@ describe('APIClient', () => {
       const customRetries = 1;
       const client = new TestAPIClient({ retries: customRetries });
       
-      const operation = vi.fn().mockRejectedValue(new Error('Always fails'));
-      const errorHandler = vi.fn().mockReturnValue(new LLMNetworkError('Network error'));
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Always fails'));
+      client.setMockFetch(mockFetch);
+
+      const testRequest: LLMRequest = {
+        systemPrompt: 'Test system prompt',
+        userPrompt: 'Test user prompt'
+      };
 
       await expect(
-        client.testExecuteWithRetry(operation, errorHandler)
+        client.testExecuteWithRetry(testRequest)
       ).rejects.toThrow();
 
-      expect(operation).toHaveBeenCalledTimes(customRetries);
+      expect(mockFetch).toHaveBeenCalledTimes(customRetries);
     });
 
     test('shouldUseCustomDelaySettings', () => {

@@ -1,9 +1,9 @@
-import type { APIClientConfig } from '../types/index.js';
+import type { APIClientConfig, LLMRequest, LLMResponse } from '../types/index.js';
 import {
-  LLMError,
   LLMAuthenticationError,
+  LLMError,
+  LLMNetworkError,
   LLMRateLimitError,
-  LLMNetworkError
 } from '../types/index.js';
 
 export abstract class APIClient {
@@ -15,22 +15,23 @@ export abstract class APIClient {
       timeout: 30000,
       baseDelay: 1000,
       maxDelay: 10000,
-      ...config
+      ...config,
     };
   }
 
-  protected async executeWithRetry<T>(
-    operation: () => Promise<T>,
-    errorHandler: (error: any) => LLMError
-  ): Promise<T> {
+  // Abstract method that subclasses must implement
+  protected abstract fetch(request: LLMRequest): Promise<LLMResponse>;
+
+  protected async executeWithRetry(request: LLMRequest): Promise<LLMResponse> {
     const maxRetries = this.config.retries;
-    
+    const errorHandler = this.createStandardErrorHandler();
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        return await operation();
+        return await this.fetch(request);
       } catch (error: any) {
         const wrappedError = errorHandler(error);
-        
+
         // Handle authentication errors immediately - don't retry
         if (wrappedError instanceof LLMAuthenticationError) {
           throw wrappedError;
@@ -59,7 +60,7 @@ export abstract class APIClient {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   protected createStandardErrorHandler(): (error: any) => LLMError {
@@ -70,25 +71,40 @@ export abstract class APIClient {
       }
 
       // HTTP status code based error handling
-      if (error.status === 401 || error.message?.includes('authentication_error')) {
-        return new LLMAuthenticationError(error.message || 'Authentication failed');
+      if (
+        error.status === 401 ||
+        error.message?.includes('authentication_error')
+      ) {
+        return new LLMAuthenticationError(
+          error.message || 'Authentication failed'
+        );
       }
-      
+
       if (error.status === 429 || error.message?.includes('rate_limit')) {
         return new LLMRateLimitError(error.message || 'Rate limit exceeded');
       }
-      
-      if (error.status >= 500 || error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+
+      if (
+        error.status >= 500 ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT'
+      ) {
         return new LLMNetworkError(error.message || 'Network error');
       }
 
       // Generic network errors
       if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-        return new LLMNetworkError(error.message || 'Network connection failed');
+        return new LLMNetworkError(
+          error.message || 'Network connection failed'
+        );
       }
 
       // Default to non-retryable error
-      return new LLMError(error.message || 'Unknown API error', 'UNKNOWN_ERROR', false);
+      return new LLMError(
+        error.message || 'Unknown API error',
+        'UNKNOWN_ERROR',
+        false
+      );
     };
   }
 }
