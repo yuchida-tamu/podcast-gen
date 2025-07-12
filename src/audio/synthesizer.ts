@@ -1,16 +1,13 @@
 import { PodcastGenerationError } from '../utils/errors.js';
+import type { MonologueSegment } from '../types/index.js';
 import fs from 'fs-extra';
-import path from 'path';
 
 export class AudioSynthesizer {
   constructor() {
-    this.voices = {
-      'Alex': 'voice_1',
-      'Jordan': 'voice_2'
-    };
+    // Future: voice configuration will go here
   }
 
-  async synthesizeAudio(segments, outputPath) {
+  async synthesizeAudio(_segments: Partial<MonologueSegment>[], outputPath: string): Promise<string> {
     try {
       await this.simulateApiCall(2000);
       
@@ -19,11 +16,12 @@ export class AudioSynthesizer {
       
       return outputPath;
     } catch (error) {
-      throw new PodcastGenerationError(`Failed to synthesize audio: ${error.message}`, 'audio');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new PodcastGenerationError(`Failed to synthesize audio: ${errorMessage}`, 'audio');
     }
   }
 
-  createMockAudioFile() {
+  private createMockAudioFile(): Buffer {
     const mockMp3Header = Buffer.from([
       0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0xFF, 0xFB, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -36,12 +34,12 @@ export class AudioSynthesizer {
     return Buffer.concat([mockMp3Header, mockAudioData]);
   }
 
-  async simulateApiCall(delay) {
+  private async simulateApiCall(delay: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, delay));
   }
 
-  estimateAudioDuration(segments) {
-    const totalCharacters = segments.reduce((sum, segment) => sum + segment.text.length, 0);
+  estimateAudioDuration(segments: Partial<MonologueSegment>[]): number {
+    const totalCharacters = segments.reduce((sum, segment) => sum + (segment.text?.length || 0), 0);
     const avgCharactersPerSecond = 15;
     return Math.ceil(totalCharacters / avgCharactersPerSecond);
   }

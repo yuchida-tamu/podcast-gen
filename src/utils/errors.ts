@@ -1,12 +1,16 @@
+import type { ValidationResult, TopicString, DurationMinutes } from '../types/index.js';
+
 export class PodcastGenerationError extends Error {
-  constructor(message, phase = 'unknown') {
+  public readonly phase: string;
+  
+  constructor(message: string, phase: string = 'unknown') {
     super(message);
     this.name = 'PodcastGenerationError';
     this.phase = phase;
   }
 }
 
-export function handleError(error) {
+export function handleError(error: Error): never {
   if (error instanceof PodcastGenerationError) {
     console.error(`Error in ${error.phase}: ${error.message}`);
   } else {
@@ -15,7 +19,7 @@ export function handleError(error) {
   process.exit(1);
 }
 
-export function validateTopic(topic) {
+export function validateTopic(topic: TopicString): ValidationResult {
   if (!topic || typeof topic !== 'string') {
     throw new PodcastGenerationError('Topic must be a non-empty string', 'validation');
   }
@@ -29,25 +33,27 @@ export function validateTopic(topic) {
   }
 }
 
-export function validateDuration(duration) {
-  const validDurations = [5, 10];
-  if (!validDurations.includes(duration)) {
+export function validateDuration(duration: number): ValidationResult {
+  const validDurations: DurationMinutes[] = [5, 10];
+  if (!validDurations.includes(duration as DurationMinutes)) {
     throw new PodcastGenerationError('Duration must be 5 or 10 minutes', 'validation');
   }
 }
 
-export function validateApiKey() {
-  if (!process.env.ANTHROPIC_API_KEY) {
+export function validateApiKey(): ValidationResult {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  
+  if (!apiKey || apiKey.trim() === '') {
     throw new PodcastGenerationError(
-      'ANTHROPIC_API_KEY environment variable is required. Please set it in your .env file.',
+      'ANTHROPIC_API_KEY environment variable is required',
       'configuration'
     );
   }
   
-  // Basic format check - should contain ant-api
-  if (!process.env.ANTHROPIC_API_KEY.includes('ant-api')) {
+  // Basic format check - should start with sk-ant or ysk-ant
+  if (!apiKey.startsWith('sk-ant') && !apiKey.startsWith('ysk-ant')) {
     throw new PodcastGenerationError(
-      'Invalid ANTHROPIC_API_KEY format. Please check your API key.',
+      'Invalid ANTHROPIC_API_KEY format',
       'configuration'
     );
   }

@@ -1,8 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { PodcastGenerationError, validateApiKey } from '../utils/errors.js';
-import { createMonologuePrompt, NARRATOR_PROMPT, NARRATIVE_PHASES } from './prompts.js';
+import { createMonologuePrompt, NARRATOR_PROMPT } from './prompts.js';
+import type { MonologueSegment, NarratorConfig, NarrativePhase } from '../types/index.js';
 
 export class MonologueEngine {
+  private anthropic: Anthropic;
+  private narrator: NarratorConfig;
+  private previousContent: MonologueSegment[];
+
   constructor() {
     validateApiKey();
 
@@ -20,11 +25,11 @@ export class MonologueEngine {
     this.previousContent = [];
   }
 
-  async generateMonologue(topic, duration = 5) {
+  async generateMonologue(topic: string, duration: number = 5): Promise<MonologueSegment[]> {
     try {
       this.previousContent = [];
       
-      const segments = [];
+      const segments: MonologueSegment[] = [];
       let currentTime = 0;
       
       // Calculate target segments based on duration
@@ -62,22 +67,23 @@ export class MonologueEngine {
       
       return segments;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new PodcastGenerationError(
-        `Failed to generate monologue: ${error.message}`,
+        `Failed to generate monologue: ${errorMessage}`,
         'monologue'
       );
     }
   }
 
-  async generateContent(topic, phase) {
+  private async generateContent(topic: string, phase: NarrativePhase): Promise<string> {
     const systemPrompt = this.narrator.systemPrompt.personality + '\n\n' + this.narrator.systemPrompt.formatInstructions;
     const userPrompt = createMonologuePrompt(topic, phase, this.previousContent);
     
-    const response = await this.callAnthropicAPI(systemPrompt, userPrompt);
+    const response = await this.callAnthropicAPI(systemPrompt, userPrompt, topic, phase);
     return response;
   }
 
-  async callAnthropicAPI(systemPrompt, userPrompt, retries = 3) {
+  private async callAnthropicAPI(systemPrompt: string, userPrompt: string, topic: string, phase: NarrativePhase, retries: number = 3): Promise<string> {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         const response = await this.anthropic.messages.create({
@@ -92,11 +98,14 @@ export class MonologueEngine {
           ],
         });
 
-        return response.content[0].text.trim();
-      } catch (error) {
+        if (response.content[0] && 'text' in response.content[0]) {
+          return response.content[0].text.trim();
+        }
+        throw new Error('Invalid response format from API');
+      } catch (error: any) {
         if (
           error.status === 401 ||
-          error.message.includes('authentication_error')
+          error.message?.includes('authentication_error')
         ) {
           // API key is invalid, fall back to enhanced mock responses
           console.warn(
@@ -114,10 +123,11 @@ export class MonologueEngine {
         );
       }
     }
+    throw new Error('Failed to get response after all retries');
   }
 
-  generateMockContent(topic, phase) {
-    const mockContent = {
+  private generateMockContent(topic: string, phase: NarrativePhase): string {
+    const mockContent: Record<NarrativePhase, string[]> = {
       introduction: [
         `You know, I've been thinking a lot about ${topic.toLowerCase()} lately, and it's really fascinating when you start to dig into it. [thoughtful] I mean, this is something that affects so many of us, yet we rarely take the time to really examine it properly.`,
         `So let's talk about ${topic.toLowerCase()} today. [engaging] This is one of those topics that seems straightforward on the surface, but the more you explore it, the more complex and interesting it becomes.`,
@@ -140,7 +150,7 @@ export class MonologueEngine {
     return phaseContent[Math.floor(Math.random() * phaseContent.length)];
   }
 
-  createSegment(content, startTime) {
+  private createSegment(content: string, startTime: number): MonologueSegment {
     const emotion = this.extractEmotion(content);
     const cleanText = this.cleanText(content);
     const duration = this.estimateDuration(cleanText);
@@ -153,22 +163,22 @@ export class MonologueEngine {
     };
   }
 
-  extractEmotion(text) {
+  private extractEmotion(text: string): string {
     const emotionMatch = text.match(/\[([^\]]+)\]/);
     return emotionMatch ? emotionMatch[1] : 'neutral';
   }
 
-  cleanText(text) {
+  private cleanText(text: string): string {
     // Remove emotion indicators from the main text
     return text.replace(/\[([^\]]+)\]/g, '').trim();
   }
 
-  calculateTargetSegments(duration) {
+  private calculateTargetSegments(duration: number): number {
     // Aim for segments of about 20-30 seconds each
     return Math.floor(duration * 2);
   }
 
-  estimateDuration(text) {
+  private estimateDuration(text: string): number {
     // Estimate speaking time: ~150 words per minute, ~5 characters per word
     const wordsPerMinute = 150;
     const charactersPerWord = 5;
@@ -180,7 +190,7 @@ export class MonologueEngine {
     return Math.max(5, Math.floor(baseDuration * (1 + variation)));
   }
 
-  formatTime(seconds) {
+  private formatTime(seconds: number): string {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds

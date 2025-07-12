@@ -20,6 +20,7 @@ import {
   showStep,
   showSuccess,
 } from './utils/progress.js';
+import type { CliOptions } from './types/index.js';
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ program
   .argument('<topic>', 'Topic for the monologue podcast')
   .option('-d, --duration <minutes>', 'Duration in minutes (5 or 10)', '5')
   .option('-o, --output <path>', 'Output directory', './output')
-  .action(async (topic, options) => {
+  .action(async (topic: string, options: CliOptions) => {
     try {
       const duration = parseInt(options.duration);
       const outputDir = path.resolve(options.output);
@@ -67,11 +68,11 @@ program
       await audioSynthesizer.synthesizeAudio(segments, audioPath);
 
       showSuccess('Podcast generated successfully!');
-      showFileOutput('Script (JSON)', jsonPath);
-      showFileOutput('Audio', audioPath);
+      showFileOutput('script', jsonPath);
+      showFileOutput('audio', audioPath);
     } catch (error) {
       showError('Failed to generate podcast');
-      handleError(error);
+      handleError(error as Error);
     }
   });
 

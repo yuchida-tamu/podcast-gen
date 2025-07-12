@@ -1,33 +1,38 @@
 import { PodcastGenerationError } from '../utils/errors.js';
+import type { MonologueSegment, ScriptOutput } from '../types/index.js';
 
 export class ScriptFormatter {
+  public title: string;
+  public generatedDate: string;
+
   constructor() {
     this.title = '';
     this.generatedDate = '';
   }
 
-  async formatScript(segments, topic) {
+  async formatScript(segments: Partial<MonologueSegment>[], topic: string): Promise<string> {
     try {
       const jsonScript = this.generateJSON(segments, topic);
       return jsonScript;
     } catch (error) {
-      throw new PodcastGenerationError(`Failed to format script: ${error.message}`, 'script');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new PodcastGenerationError(`Failed to format script: ${errorMessage}`, 'script');
     }
   }
 
-  generateJSON(segments, topic) {
+  generateJSON(segments: Partial<MonologueSegment>[], topic: string): string {
     const generated = new Date().toISOString();
-    const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
+    const totalDuration = segments.reduce((sum, segment) => sum + (segment.duration || 0), 0);
     
-    const script = {
+    const script: ScriptOutput = {
       title: this.capitalizeFirst(topic),
       generated: generated,
       duration: totalDuration,
       segments: segments.map(segment => ({
-        timestamp: segment.timestamp,
-        text: segment.text,
+        timestamp: segment.timestamp || '',
+        text: segment.text || '',
         emotion: segment.emotion || 'neutral',
-        duration: segment.duration
+        duration: segment.duration || 0
       })),
       metadata: {
         topic: topic,
@@ -41,13 +46,11 @@ export class ScriptFormatter {
     return JSON.stringify(script, null, 2);
   }
 
-  capitalizeFirst(text) {
+  capitalizeFirst(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
-  
-  
-  generateFilename(topic) {
+  generateFilename(topic: string): string {
     const date = new Date().toISOString().split('T')[0];
     const slug = topic
       .toLowerCase()
@@ -57,9 +60,5 @@ export class ScriptFormatter {
       .replace(/^-|-$/g, '');
     
     return `${slug}_${date}`;
-  }
-  
-  capitalizeFirst(text) {
-    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 }
