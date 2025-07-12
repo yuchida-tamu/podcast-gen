@@ -82,7 +82,7 @@ Always write one test at a time, make it run, then improve structure. Always run
 
 ## Project Overview
 
-DialecticCast is an AI-powered dialectical podcast generator that creates natural-sounding conversations between two AI agents engaged in dialectical debates. The system takes a topic as input and produces both an audio file and a transcript following the thesis-antithesis-synthesis structure.
+DialecticCast is an AI-powered podcast generator that creates natural-sounding monologues delivered by an AI narrator. The system takes a topic as input and produces both an audio file and a JSON script following a narrative structure.
 
 ## Development Commands
 
@@ -124,16 +124,16 @@ npm run lint:fix   # Fix ESLint issues
    - Progress indicators and user feedback
    - Error handling and validation
 
-2. **Dialogue Engine** (`src/dialogue/`)
+2. **Monologue Engine** (`src/monologue/`)
 
-   - LLM integration for generating natural conversations
-   - Dialectical structure implementation (thesis-antithesis-synthesis)
-   - Agent personality management
+   - LLM integration for generating natural monologues
+   - Narrative structure implementation (introduction-exploration-conclusion)
+   - Single narrator personality management
 
 3. **Script Generator** (`src/script/`)
 
-   - Markdown formatting with timestamps
-   - Speaker labels and emotion indicators
+   - JSON formatting with timestamps and metadata
+   - Emotion indicators for TTS optimization
    - Natural speech pattern formatting
 
 4. **Audio Synthesis** (`src/audio/`)
@@ -194,24 +194,24 @@ podcast-gen "Climate change solutions" --duration 10 --output ./my-podcasts
 
 ## Output Format
 
-- **Script**: Markdown file with timestamps (`MM:SS` format)
+- **Script**: JSON file with timestamps and metadata
 - **Audio**: MP3 file, 128kbps minimum
-- **Naming**: `topic-slug_YYYY-MM-DD.{md,mp3}`
+- **Naming**: `topic-slug_YYYY-MM-DD.{json,mp3}`
 
 ## Development Guidelines
 
-### Dialogue Generation
+### Monologue Generation
 
-- Ensure natural conversation flow with interruptions and overlaps
+- Ensure natural narrative flow with smooth transitions
 - Include thinking pauses and emotional reactions
 - Maintain balanced perspectives without bias
-- Follow dialectical structure: opening → argumentation → synthesis
+- Follow narrative structure: introduction → exploration → conclusion
 
 ### Audio Quality
 
-- Use distinct voices for each agent
+- Use consistent narrator voice
 - Ensure natural pacing and intonation
-- Match emotional expression to dialogue content
+- Match emotional expression to monologue content
 - Maintain consistent audio quality throughout
 
 ### Error Handling
