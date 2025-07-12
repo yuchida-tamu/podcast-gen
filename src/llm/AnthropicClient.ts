@@ -1,19 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { validateApiKey } from '../utils/errors.js';
 import type {
-  LLMClient,
+  LLMConfig,
   LLMRequest,
   LLMResponse,
-  LLMConfig
+  LLMService,
 } from '../types/index.js';
 import {
-  LLMError,
   LLMAuthenticationError,
+  LLMError,
+  LLMNetworkError,
   LLMRateLimitError,
-  LLMNetworkError
 } from '../types/index.js';
+import { validateApiKey } from '../utils/errors.js';
 
-export class AnthropicClient implements LLMClient {
+export class AnthropicService implements LLMService {
   private client: Anthropic;
   private config: LLMConfig;
 
@@ -26,7 +26,7 @@ export class AnthropicClient implements LLMClient {
       maxTokens: 500,
       retries: 3,
       timeout: 30000,
-      ...config
+      ...config,
     };
 
     this.client = new Anthropic({
@@ -36,7 +36,7 @@ export class AnthropicClient implements LLMClient {
 
   async generateContent(request: LLMRequest): Promise<LLMResponse> {
     const maxRetries = this.config.retries;
-    
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const response = await this.client.messages.create({
@@ -57,19 +57,19 @@ export class AnthropicClient implements LLMClient {
         }
 
         const content = response.content[0].text.trim();
-        
+
         return {
           content,
           usage: {
             promptTokens: response.usage.input_tokens,
             completionTokens: response.usage.output_tokens,
-            totalTokens: response.usage.input_tokens + response.usage.output_tokens
-          }
+            totalTokens:
+              response.usage.input_tokens + response.usage.output_tokens,
+          },
         };
-
       } catch (error: any) {
         const wrappedError = this.wrapError(error);
-        
+
         // Handle authentication errors immediately - throw instead of fallback
         if (wrappedError instanceof LLMAuthenticationError) {
           throw wrappedError;
@@ -78,7 +78,7 @@ export class AnthropicClient implements LLMClient {
         // Retry on retryable errors
         if (wrappedError.retryable && attempt < maxRetries - 1) {
           const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
 
@@ -95,9 +95,9 @@ export class AnthropicClient implements LLMClient {
       const testRequest: LLMRequest = {
         systemPrompt: 'You are a helpful assistant.',
         userPrompt: 'Say "healthy" if you can respond.',
-        maxTokens: 10
+        maxTokens: 10,
       };
-      
+
       const response = await this.generateContent(testRequest);
       return response.content.toLowerCase().includes('healthy');
     } catch (error) {
@@ -107,15 +107,24 @@ export class AnthropicClient implements LLMClient {
 
   private wrapError(error: any): LLMError {
     // Anthropic-specific error handling
-    if (error.status === 401 || error.message?.includes('authentication_error')) {
-      return new LLMAuthenticationError(error.message || 'Authentication failed');
+    if (
+      error.status === 401 ||
+      error.message?.includes('authentication_error')
+    ) {
+      return new LLMAuthenticationError(
+        error.message || 'Authentication failed'
+      );
     }
-    
+
     if (error.status === 429 || error.message?.includes('rate_limit')) {
       return new LLMRateLimitError(error.message || 'Rate limit exceeded');
     }
-    
-    if (error.status >= 500 || error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+
+    if (
+      error.status >= 500 ||
+      error.code === 'ECONNRESET' ||
+      error.code === 'ETIMEDOUT'
+    ) {
       return new LLMNetworkError(error.message || 'Network error');
     }
 
@@ -125,7 +134,10 @@ export class AnthropicClient implements LLMClient {
     }
 
     // Default to non-retryable error
-    return new LLMError(error.message || 'Unknown LLM error', 'UNKNOWN_ERROR', false);
+    return new LLMError(
+      error.message || 'Unknown LLM error',
+      'UNKNOWN_ERROR',
+      false
+    );
   }
-
 }

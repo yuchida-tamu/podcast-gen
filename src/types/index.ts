@@ -96,7 +96,7 @@ export interface LLMConfig {
   timeout: number;
 }
 
-export interface LLMClient {
+export interface LLMService {
   generateContent(request: LLMRequest): Promise<LLMResponse>;
   isHealthy(): Promise<boolean>;
 }
@@ -105,7 +105,7 @@ export interface LLMClient {
 export class LLMError extends Error {
   public readonly code: string;
   public readonly retryable: boolean;
-  
+
   constructor(message: string, code: string, retryable: boolean = false) {
     super(message);
     this.name = 'LLMError';

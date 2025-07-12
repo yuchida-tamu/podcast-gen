@@ -1,21 +1,21 @@
+import { AnthropicService } from '../llm/AnthropicClient.js';
 import type {
+  LLMRequest,
+  LLMService,
   MonologueSegment,
   NarrativePhase,
   NarratorConfig,
-  LLMClient,
-  LLMRequest
 } from '../types/index.js';
 import { PodcastGenerationError } from '../utils/errors.js';
 import { createMonologuePrompt, NARRATOR_PROMPT } from './prompts.js';
-import { AnthropicClient } from '../llm/AnthropicClient.js';
 
 export class MonologueEngine {
-  private llmClient: LLMClient;
+  private llmClient: LLMService;
   private narrator: NarratorConfig;
   private previousContent: MonologueSegment[];
 
-  constructor(llmClient?: LLMClient) {
-    this.llmClient = llmClient || new AnthropicClient();
+  constructor(llmClient?: LLMService) {
+    this.llmClient = llmClient || new AnthropicService();
 
     this.narrator = {
       name: 'Narrator',
@@ -97,7 +97,7 @@ export class MonologueEngine {
 
     const request: LLMRequest = {
       systemPrompt,
-      userPrompt
+      userPrompt,
     };
 
     const response = await this.llmClient.generateContent(request);
