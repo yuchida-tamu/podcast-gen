@@ -96,6 +96,13 @@ export interface LLMConfig {
   timeout: number;
 }
 
+export interface APIClientConfig {
+  retries: number;
+  timeout: number;
+  baseDelay: number;
+  maxDelay: number;
+}
+
 export interface LLMService {
   generateContent(request: LLMRequest): Promise<LLMResponse>;
   isHealthy(): Promise<boolean>;
