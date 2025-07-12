@@ -1,28 +1,17 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MonologueEngine } from '../../src/monologue/engine.js';
 import { PodcastGenerationError } from '../../src/utils/errors.js';
-import type { NarrativePhase } from '../../src/types/index.js';
-
-// Mock the environment variable for API key validation
-vi.mock('../../src/utils/errors.js', async () => {
-  const actual = await vi.importActual('../../src/utils/errors.js') as any;
-  return {
-    ...actual,
-    validateApiKey: vi.fn(),
-  };
-});
-
-// Mock the Anthropic SDK
-const mockAnthropicCreate = vi.fn();
-vi.mock('@anthropic-ai/sdk', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      messages: {
-        create: mockAnthropicCreate
-      }
-    }))
-  };
-});
+import type { 
+  LLMClient, 
+  LLMRequest, 
+  LLMResponse 
+} from '../../src/types/index.js';
+import { 
+  LLMError, 
+  LLMAuthenticationError, 
+  LLMRateLimitError, 
+  LLMNetworkError 
+} from '../../src/types/index.js';
 
 // Mock the prompts module
 vi.mock('../../src/monologue/prompts.js', () => ({
@@ -38,18 +27,34 @@ vi.mock('../../src/monologue/prompts.js', () => ({
   }
 }));
 
+// Mock the validateApiKey function
+vi.mock('../../src/utils/errors.js', async () => {
+  const actual = await vi.importActual('../../src/utils/errors.js') as any;
+  return {
+    ...actual,
+    validateApiKey: vi.fn(),
+  };
+});
+
 describe('MonologueEngine', () => {
   let engine: MonologueEngine;
+  let mockLLMClient: LLMClient;
 
   beforeEach(() => {
-    // Set up environment variable mock
+    // Set up environment variable for tests that use default client
     process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-for-testing';
+    
+    // Create mock LLM client
+    mockLLMClient = {
+      generateContent: vi.fn(),
+      isHealthy: vi.fn().mockResolvedValue(true)
+    };
     
     // Clear all mocks
     vi.clearAllMocks();
     
-    // Create a new engine instance for each test
-    engine = new MonologueEngine();
+    // Create engine with mock LLM client for dependency injection
+    engine = new MonologueEngine(mockLLMClient);
   });
 
   afterEach(() => {
@@ -66,19 +71,32 @@ describe('MonologueEngine', () => {
       // Note: Can't directly access private properties, but constructor shouldn't throw
     });
 
-    test('shouldValidateApiKeyOnConstruction', async () => {
-      // Given: validateApiKey mock
-      const { validateApiKey } = await import('../../src/utils/errors.js');
+    test('shouldAcceptInjectedLLMClient', () => {
+      // Given: Mock LLM client
+      const customMockClient: LLMClient = {
+        generateContent: vi.fn(),
+        isHealthy: vi.fn()
+      };
 
-      // When: Creating MonologueEngine (already done in beforeEach)
-      // Then: Should have called validateApiKey
-      expect(validateApiKey).toHaveBeenCalled();
+      // When: Creating MonologueEngine with injected client
+      const newEngine = new MonologueEngine(customMockClient);
+
+      // Then: Should initialize without throwing
+      expect(newEngine).toBeDefined();
+    });
+
+    test('shouldUseDefaultClientWhenNoneProvided', () => {
+      // When: Creating MonologueEngine without client injection
+      const newEngine = new MonologueEngine();
+
+      // Then: Should initialize with default client
+      expect(newEngine).toBeDefined();
     });
   });
 
   describe('generateMonologue - Phase Distribution', () => {
     beforeEach(() => {
-      // Mock API responses for phase testing
+      // Mock LLM client responses for phase testing
       const mockResponses = [
         'Introduction content with [thoughtful] emotion markers.',
         'Exploration content with [curious] emotion markers.',
@@ -88,12 +106,17 @@ describe('MonologueEngine', () => {
       ];
       
       let callCount = 0;
-      mockAnthropicCreate.mockImplementation(() => {
+      (mockLLMClient.generateContent as any).mockImplementation(async (): Promise<LLMResponse> => {
         const response = mockResponses[callCount % mockResponses.length];
         callCount++;
-        return Promise.resolve({
-          content: [{ text: response }]
-        });
+        return {
+          content: response,
+          usage: {
+            promptTokens: 50,
+            completionTokens: 30,
+            totalTokens: 80
+          }
+        };
       });
     });
 
@@ -147,8 +170,8 @@ describe('MonologueEngine', () => {
       // When: Generating monologue
       await engine.generateMonologue(topic, duration);
 
-      // Then: Should have made API calls (9 segments for 5 minutes)
-      expect(mockAnthropicCreate).toHaveBeenCalledTimes(9);
+      // Then: Should have made LLM client calls (9 segments for 5 minutes)
+      expect(mockLLMClient.generateContent).toHaveBeenCalledTimes(9);
     });
 
     test('shouldResetPreviousContentBetweenGenerations', async () => {
@@ -390,152 +413,148 @@ describe('MonologueEngine', () => {
 
   describe('Error Handling', () => {
     test('shouldWrapGenerationErrorsInPodcastGenerationError', async () => {
-      // Given: API that throws error immediately (no retries)
-      mockAnthropicCreate.mockImplementation(() => {
-        throw new Error('Network error');
-      });
+      // Given: LLM client that throws error
+      (mockLLMClient.generateContent as any).mockRejectedValue(new LLMNetworkError('Network error'));
 
       // When/Then: Should wrap error appropriately
       await expect(engine.generateMonologue('test topic', 5))
         .rejects
         .toThrow(PodcastGenerationError);
-    }, 10000);
+    });
 
-    test('shouldRetryOnTransientErrors', async () => {
-      // Given: API that fails on first call, then succeeds
-      let firstCall = true;
-      mockAnthropicCreate.mockImplementation(() => {
-        if (firstCall) {
-          firstCall = false;
-          return Promise.reject(new Error('Temporary failure'));
-        }
-        return Promise.resolve({
-          content: [{ text: 'Success after retries [happy]' }]
-        });
+    test('shouldHandleAuthenticationErrors', async () => {
+      // Given: LLM client that throws authentication error
+      (mockLLMClient.generateContent as any).mockRejectedValue(new LLMAuthenticationError('Authentication failed'));
+
+      // When/Then: Should propagate authentication error wrapped in PodcastGenerationError
+      await expect(engine.generateMonologue('test topic', 5))
+        .rejects
+        .toThrow(PodcastGenerationError);
+    });
+
+    test('shouldHandleRateLimitErrors', async () => {
+      // Given: LLM client that throws rate limit error
+      (mockLLMClient.generateContent as any).mockRejectedValue(new LLMRateLimitError('Rate limit exceeded'));
+
+      // When/Then: Should propagate rate limit error wrapped in PodcastGenerationError
+      await expect(engine.generateMonologue('test topic', 5))
+        .rejects
+        .toThrow(PodcastGenerationError);
+    });
+
+    test('shouldHandleNetworkErrors', async () => {
+      // Given: LLM client that throws network error
+      (mockLLMClient.generateContent as any).mockRejectedValue(new LLMNetworkError('Connection failed'));
+
+      // When/Then: Should propagate network error wrapped in PodcastGenerationError
+      await expect(engine.generateMonologue('test topic', 5))
+        .rejects
+        .toThrow(PodcastGenerationError);
+    });
+
+    test('shouldHandleGenericLLMErrors', async () => {
+      // Given: LLM client that throws generic LLM error
+      (mockLLMClient.generateContent as any).mockRejectedValue(new LLMError('Generic LLM error', 'UNKNOWN', false));
+
+      // When/Then: Should propagate generic error wrapped in PodcastGenerationError
+      await expect(engine.generateMonologue('test topic', 5))
+        .rejects
+        .toThrow(PodcastGenerationError);
+    });
+
+    test('shouldPassLLMRequestCorrectly', async () => {
+      // Given: Mock that captures request
+      const requestCapture: LLMRequest[] = [];
+      (mockLLMClient.generateContent as any).mockImplementation(async (request: LLMRequest) => {
+        requestCapture.push(request);
+        return {
+          content: 'Test response [neutral]',
+          usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 }
+        };
       });
 
       // When: Generating monologue
-      const result = await engine.generateMonologue('test topic', 5);
+      await engine.generateMonologue('test topic', 5);
 
-      // Then: Should succeed after retries
-      expect(result).toBeDefined();
-      expect(result.length).toBe(9);
-      
-      // And: Should have made at least the expected calls (9 segments + 1 retry)
-      expect(mockAnthropicCreate).toHaveBeenCalledTimes(10);
-    });
-
-    test('shouldFallbackToMockOnAuthenticationError', async () => {
-      // Given: API that returns 401 authentication error
-      const authError = new Error('Authentication failed');
-      (authError as any).status = 401;
-      mockAnthropicCreate.mockRejectedValue(authError);
-
-      // Mock console.warn to check fallback message
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      // When: Generating monologue
-      const result = await engine.generateMonologue('test topic', 5);
-
-      // Then: Should succeed with mock content
-      expect(result).toBeDefined();
-      expect(result.length).toBe(9); // 5 minutes worth
-      
-      // And: Should have logged warning
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Warning: Invalid API key, falling back to enhanced mock responses'
-      );
-
-      // Cleanup
-      consoleWarnSpy.mockRestore();
-    });
-
-    test('shouldHandleInvalidApiResponseFormat', async () => {
-      // Given: API that returns invalid response format
-      mockAnthropicCreate.mockResolvedValue({
-        content: [{ type: 'image', data: 'invalid' }] // Not text response
+      // Then: Should have captured requests with correct structure
+      expect(requestCapture.length).toBeGreaterThan(0);
+      requestCapture.forEach(request => {
+        expect(request).toHaveProperty('systemPrompt');
+        expect(request).toHaveProperty('userPrompt');
+        expect(typeof request.systemPrompt).toBe('string');
+        expect(typeof request.userPrompt).toBe('string');
       });
-
-      // When/Then: Should throw error for invalid response
-      await expect(engine.generateMonologue('test topic', 5))
-        .rejects
-        .toThrow('Invalid response format from API');
-    });
-
-    test('shouldThrowAfterMaxRetries', async () => {
-      // Given: API that always fails
-      mockAnthropicCreate.mockRejectedValue(new Error('Persistent failure'));
-
-      // When/Then: Should throw after exhausting retries
-      await expect(engine.generateMonologue('test topic', 5))
-        .rejects
-        .toThrow('Persistent failure');
     });
   });
 
-  describe('Mock Content Generation', () => {
-    test('shouldGenerateMockContentForAllPhases', () => {
-      // Given: All narrative phases
-      const phases: NarrativePhase[] = ['introduction', 'exploration', 'conclusion'];
-      const topic = 'artificial intelligence';
-
-      // When: Generating mock content for each phase
-      phases.forEach(phase => {
-        const content = (engine as any).generateMockContent(topic, phase);
-
-        // Then: Should generate content for each phase
-        expect(content).toBeDefined();
-        expect(typeof content).toBe('string');
-        expect(content.length).toBeGreaterThan(0);
-        
-        // And: Should contain emotion markers
-        expect(content).toMatch(/\[[^\]]+\]/);
+  describe('LLM Client Integration', () => {
+    test('shouldCallLLMClientWithCorrectParameters', async () => {
+      // Given: Mock that tracks calls
+      const requestCapture: LLMRequest[] = [];
+      (mockLLMClient.generateContent as any).mockImplementation(async (request: LLMRequest) => {
+        requestCapture.push(request);
+        return {
+          content: 'Generated content [neutral]',
+          usage: { promptTokens: 50, completionTokens: 30, totalTokens: 80 }
+        };
       });
 
-      // Test specific phases that should contain topic
-      const introContent = (engine as any).generateMockContent(topic, 'introduction');
-      expect(introContent.toLowerCase()).toContain(topic.toLowerCase());
+      // When: Generating monologue
+      await engine.generateMonologue('machine learning', 5);
+
+      // Then: Should have made correct number of calls
+      expect(mockLLMClient.generateContent).toHaveBeenCalledTimes(9);
       
-      const conclusionContent = (engine as any).generateMockContent(topic, 'conclusion');
-      expect(conclusionContent.toLowerCase()).toContain(topic.toLowerCase());
+      // And: Each call should have proper structure
+      expect(requestCapture).toHaveLength(9);
+      requestCapture.forEach(request => {
+        expect(request.systemPrompt).toContain('Test personality for engaging podcast narration');
+        expect(request.systemPrompt).toContain('Test instructions for formatting responses');
+        expect(request.userPrompt).toBe('Generated prompt for testing');
+      });
     });
 
-    test('shouldGenerateVariedMockContent', () => {
-      // Given: Same phase and topic
-      const phase: NarrativePhase = 'exploration';
-      const topic = 'machine learning';
+    test('shouldHandleUsageStatistics', async () => {
+      // Given: LLM client that returns usage stats
+      (mockLLMClient.generateContent as any).mockResolvedValue({
+        content: 'Test content [excited]',
+        usage: {
+          promptTokens: 100,
+          completionTokens: 50,
+          totalTokens: 150
+        }
+      });
 
-      // When: Generating multiple mock contents
-      const contents = [];
-      for (let i = 0; i < 10; i++) {
-        contents.push((engine as any).generateMockContent(topic, phase));
-      }
+      // When: Generating monologue
+      const result = await engine.generateMonologue('test topic', 5);
 
-      // Then: Should have some variation (not all identical)
-      const uniqueContents = new Set(contents);
-      expect(uniqueContents.size).toBeGreaterThan(1);
+      // Then: Should complete successfully despite usage stats
+      expect(result).toBeDefined();
+      expect(result.length).toBe(9);
     });
 
-    test('shouldFallbackToExplorationForInvalidPhase', () => {
-      // Given: Invalid phase
-      const invalidPhase = 'invalid' as NarrativePhase;
-      const topic = 'test';
+    test('shouldHandleResponsesWithoutUsageStats', async () => {
+      // Given: LLM client that returns minimal response
+      (mockLLMClient.generateContent as any).mockResolvedValue({
+        content: 'Test content [neutral]'
+        // No usage property
+      });
 
-      // When: Generating mock content
-      const content = (engine as any).generateMockContent(topic, invalidPhase);
+      // When: Generating monologue
+      const result = await engine.generateMonologue('test topic', 5);
 
-      // Then: Should still generate content (fallback to exploration)
-      expect(content).toBeDefined();
-      expect(typeof content).toBe('string');
-      expect(content.length).toBeGreaterThan(0);
+      // Then: Should complete successfully without usage stats
+      expect(result).toBeDefined();
+      expect(result.length).toBe(9);
     });
   });
 
   describe('Integration & Edge Cases', () => {
-    test('shouldHandleEmptyApiResponse', async () => {
-      // Given: API that returns empty text
-      mockAnthropicCreate.mockResolvedValue({
-        content: [{ text: '   ' }] // Empty/whitespace text
+    test('shouldHandleEmptyLLMResponse', async () => {
+      // Given: LLM client that returns empty text
+      (mockLLMClient.generateContent as any).mockResolvedValue({
+        content: '   ', // Empty/whitespace text
+        usage: { promptTokens: 10, completionTokens: 1, totalTokens: 11 }
       });
 
       // When: Generating monologue
@@ -557,8 +576,9 @@ describe('MonologueEngine', () => {
       // Given: Topic with special characters
       const topic = 'AI & Machine Learning: The Future (2025)!';
       
-      mockAnthropicCreate.mockResolvedValue({
-        content: [{ text: 'Generated content about the topic [excited]' }]
+      (mockLLMClient.generateContent as any).mockResolvedValue({
+        content: 'Generated content about the topic [excited]',
+        usage: { promptTokens: 50, completionTokens: 25, totalTokens: 75 }
       });
 
       // When: Generating monologue
@@ -570,27 +590,29 @@ describe('MonologueEngine', () => {
     });
 
     test('shouldAccumulatePreviousContentDuringGeneration', async () => {
-      // Given: API that returns different content each time
+      // Given: LLM client that returns different content each time
       let callCount = 0;
-      mockAnthropicCreate.mockImplementation(() => {
+      (mockLLMClient.generateContent as any).mockImplementation(async () => {
         callCount++;
-        return Promise.resolve({
-          content: [{ text: `Content segment ${callCount} [neutral]` }]
-        });
+        return {
+          content: `Content segment ${callCount} [neutral]`,
+          usage: { promptTokens: 30, completionTokens: 20, totalTokens: 50 }
+        };
       });
 
       // When: Generating monologue
       await engine.generateMonologue('test topic', 5);
 
       // Then: Should have made calls for all segments
-      expect(mockAnthropicCreate).toHaveBeenCalledTimes(9);
+      expect(mockLLMClient.generateContent).toHaveBeenCalledTimes(9);
       expect(callCount).toBe(9);
     });
 
     test('shouldMaintainTimestampSequence', async () => {
-      // Given: Successful API responses
-      mockAnthropicCreate.mockResolvedValue({
-        content: [{ text: 'Test content [neutral]' }]
+      // Given: Successful LLM responses
+      (mockLLMClient.generateContent as any).mockResolvedValue({
+        content: 'Test content [neutral]',
+        usage: { promptTokens: 25, completionTokens: 15, totalTokens: 40 }
       });
 
       // When: Generating monologue
@@ -605,6 +627,14 @@ describe('MonologueEngine', () => {
         expect(totalSeconds).toBeGreaterThan(previousSeconds);
         previousSeconds = totalSeconds;
       });
+    });
+
+    test('shouldCreateEngineWithDefaultClientWhenNoneProvided', () => {
+      // When: Creating engine without LLM client
+      const defaultEngine = new MonologueEngine();
+
+      // Then: Should create successfully with default client
+      expect(defaultEngine).toBeDefined();
     });
   });
 });

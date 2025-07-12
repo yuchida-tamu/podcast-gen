@@ -70,3 +70,64 @@ export type ValidationResult = void; // throws on failure
 export type TopicString = string;
 export type DurationMinutes = 5 | 10;
 export type ApiKey = string;
+
+// LLM Client types
+export interface LLMRequest {
+  systemPrompt: string;
+  userPrompt: string;
+  maxTokens?: number;
+  model?: string;
+}
+
+export interface LLMResponse {
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+export interface LLMConfig {
+  apiKey: string;
+  model: string;
+  maxTokens: number;
+  retries: number;
+  timeout: number;
+}
+
+export interface LLMClient {
+  generateContent(request: LLMRequest): Promise<LLMResponse>;
+  isHealthy(): Promise<boolean>;
+}
+
+// LLM Error types
+export class LLMError extends Error {
+  public readonly code: string;
+  public readonly retryable: boolean;
+  
+  constructor(message: string, code: string, retryable: boolean = false) {
+    super(message);
+    this.name = 'LLMError';
+    this.code = code;
+    this.retryable = retryable;
+  }
+}
+
+export class LLMAuthenticationError extends LLMError {
+  constructor(message: string = 'Authentication failed') {
+    super(message, 'AUTHENTICATION_ERROR', false);
+  }
+}
+
+export class LLMRateLimitError extends LLMError {
+  constructor(message: string = 'Rate limit exceeded') {
+    super(message, 'RATE_LIMIT_ERROR', true);
+  }
+}
+
+export class LLMNetworkError extends LLMError {
+  constructor(message: string = 'Network error') {
+    super(message, 'NETWORK_ERROR', true);
+  }
+}
