@@ -18,6 +18,9 @@ test-output/
 *.wav
 *.html
 
+# Test coverage
+coverage/
+
 # Logs
 logs/
 *.log

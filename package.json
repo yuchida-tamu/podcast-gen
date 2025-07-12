@@ -11,8 +11,8 @@
     "dev": "node src/cli.js",
     "build": "echo 'No build step required for Node.js CLI'",
     "start": "node src/cli.js",
-    "test": "echo 'Tests not implemented yet'",
-    "test:watch": "echo 'Test watch not implemented yet'",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo 'Linting not implemented yet'",
     "lint:fix": "echo 'Lint fix not implemented yet'"
   },
@@ -35,5 +35,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^3.2.4",
+    "vitest": "^3.2.4"
   }
 }
