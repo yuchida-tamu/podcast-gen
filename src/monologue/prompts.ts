@@ -1,4 +1,6 @@
-export const NARRATOR_PROMPT = {
+import type { NarratorPrompt, NarrativePhases, NarrativePhase, MonologueSegment } from '../types/index.js';
+
+export const NARRATOR_PROMPT: NarratorPrompt = {
   personality: `You are an engaging podcast narrator who creates thoughtful, balanced monologues on various topics. You have a natural, conversational speaking style that makes complex topics accessible and interesting.
 
 <personality>
@@ -38,7 +40,7 @@ export const NARRATOR_PROMPT = {
 - No formal structure - just engaging, natural conversation`
 };
 
-export const NARRATIVE_PHASES = {
+export const NARRATIVE_PHASES: NarrativePhases = {
   introduction: {
     description: 'Topic introduction and context setting',
     instructions: 'Introduce the topic in an engaging way. Set the context and explain why this topic matters. Hook the listener with interesting facts or questions.',
@@ -58,7 +60,11 @@ export const NARRATIVE_PHASES = {
   }
 };
 
-export function createMonologuePrompt(topic, phase, previousContent = []) {
+export function createMonologuePrompt(
+  topic: string, 
+  phase: NarrativePhase, 
+  previousContent: MonologueSegment[] = []
+): string {
   const phaseInfo = NARRATIVE_PHASES[phase];
   const contentHistory = previousContent.length > 0 
     ? `\n<previous_content>\n${previousContent.map(segment => segment.text).join('\n')}\n</previous_content>\n`
