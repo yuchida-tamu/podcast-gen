@@ -35,3 +35,20 @@ export function validateDuration(duration) {
     throw new PodcastGenerationError('Duration must be 5 or 10 minutes', 'validation');
   }
 }
+
+export function validateApiKey() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new PodcastGenerationError(
+      'ANTHROPIC_API_KEY environment variable is required. Please set it in your .env file.',
+      'configuration'
+    );
+  }
+  
+  // Basic format check - should contain ant-api
+  if (!process.env.ANTHROPIC_API_KEY.includes('ant-api')) {
+    throw new PodcastGenerationError(
+      'Invalid ANTHROPIC_API_KEY format. Please check your API key.',
+      'configuration'
+    );
+  }
+}

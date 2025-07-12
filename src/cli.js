@@ -4,11 +4,11 @@ import { Command } from 'commander';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs-extra';
-import { DialogueEngine } from './dialogue/engine.js';
+import { MonologueEngine } from './monologue/engine.js';
 import { ScriptFormatter } from './script/formatter.js';
 import { AudioSynthesizer } from './audio/synthesizer.js';
 import { showProgress, showSuccess, showError, showStep, showFileOutput } from './utils/progress.js';
-import { validateTopic, validateDuration, handleError } from './utils/errors.js';
+import { validateTopic, validateDuration, validateApiKey, handleError } from './utils/errors.js';
 
 dotenv.config();
 
@@ -30,32 +30,33 @@ program
       
       validateTopic(topic);
       validateDuration(duration);
+      validateApiKey();
       
       showProgress(`Generating podcast on: '${topic}'`);
       
       await fs.ensureDir(outputDir);
       
-      const dialogueEngine = new DialogueEngine();
+      const monologueEngine = new MonologueEngine();
       const scriptFormatter = new ScriptFormatter();
       const audioSynthesizer = new AudioSynthesizer();
       
       showStep(1, 4, 'Analyzing topic...');
-      const dialogue = await dialogueEngine.generateDialogue(topic, duration);
+      const segments = await monologueEngine.generateMonologue(topic, duration);
       
-      showStep(2, 4, 'Creating natural conversation...');
-      const script = await scriptFormatter.formatScript(dialogue, topic);
+      showStep(2, 4, 'Creating narrative content...');
+      const jsonScript = await scriptFormatter.formatScript(segments, topic);
       
       showStep(3, 4, 'Formatting script...');
       const filename = scriptFormatter.generateFilename(topic);
-      const scriptPath = path.join(outputDir, `${filename}.md`);
-      await fs.writeFile(scriptPath, script);
+      const jsonPath = path.join(outputDir, `${filename}.json`);
+      await fs.writeFile(jsonPath, jsonScript);
       
-      showStep(4, 4, 'Synthesizing voices...');
+      showStep(4, 4, 'Synthesizing voice...');
       const audioPath = path.join(outputDir, `${filename}.mp3`);
-      await audioSynthesizer.synthesizeAudio(dialogue, audioPath);
+      await audioSynthesizer.synthesizeAudio(segments, audioPath);
       
       showSuccess('Podcast generated successfully!');
-      showFileOutput('Script', scriptPath);
+      showFileOutput('Script (JSON)', jsonPath);
       showFileOutput('Audio', audioPath);
       
     } catch (error) {

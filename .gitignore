@@ -16,6 +16,7 @@ output/
 test-output/
 *.mp3
 *.wav
+*.html
 
 # Logs
 logs/

@@ -5,13 +5,13 @@ AI-Powered Dialectical Podcast Generator
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-DialecticCast is a command-line application that generates natural-sounding podcast episodes featuring two AI agents engaged in dialectical conversations. Users input a topic, and the system produces both an audio file and a transcript of a thoughtful, balanced debate following the thesis-antithesis-synthesis structure.
+DialecticCast is a command-line application that generates natural-sounding podcast episodes featuring an AI narrator delivering engaging monologues. Users input a topic, and the system produces both an audio file and a structured JSON script of a thoughtful, balanced exploration following a narrative structure.
 
 ## 🌟 Features
 
-- **Natural Dialogue Generation**: Two distinct AI agents (Alex & Jordan) engage in thoughtful debates
-- **Dialectical Structure**: Follows thesis-antithesis-synthesis conversation flow
-- **Multiple Output Formats**: Generates both markdown transcripts and MP3 audio files
+- **Natural Monologue Generation**: Single AI narrator delivers engaging, balanced explorations
+- **Narrative Structure**: Follows introduction-exploration-conclusion flow
+- **JSON Output Format**: Generates structured JSON scripts and MP3 audio files
 - **Flexible Duration**: Support for 5 or 10-minute podcast episodes
 - **CLI Interface**: Simple command-line interface with progress indicators
 - **Error Handling**: Robust validation and helpful error messages

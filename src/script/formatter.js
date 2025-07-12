@@ -6,38 +6,47 @@ export class ScriptFormatter {
     this.generatedDate = '';
   }
 
-  async formatScript(dialogue, topic) {
+  async formatScript(segments, topic) {
     try {
-      const script = this.generateMarkdown(dialogue, topic);
-      return script;
+      const jsonScript = this.generateJSON(segments, topic);
+      return jsonScript;
     } catch (error) {
       throw new PodcastGenerationError(`Failed to format script: ${error.message}`, 'script');
     }
   }
 
-  generateMarkdown(dialogue, topic) {
-    const date = new Date().toISOString().split('T')[0];
-    const time = new Date().toLocaleTimeString('en-US', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+  generateJSON(segments, topic) {
+    const generated = new Date().toISOString();
+    const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
     
-    let markdown = `# ${this.capitalizeFirst(topic)}\n`;
-    markdown += `Generated: ${date} ${time}\n\n`;
+    const script = {
+      title: this.capitalizeFirst(topic),
+      generated: generated,
+      duration: totalDuration,
+      segments: segments.map(segment => ({
+        timestamp: segment.timestamp,
+        text: segment.text,
+        emotion: segment.emotion || 'neutral',
+        duration: segment.duration
+      })),
+      metadata: {
+        topic: topic,
+        totalSegments: segments.length,
+        estimatedDuration: totalDuration,
+        format: 'monologue',
+        version: '1.0'
+      }
+    };
     
-    dialogue.forEach(entry => {
-      const emotionText = entry.emotion ? ` [${entry.emotion}]` : '';
-      markdown += `[${entry.timestamp}] ${entry.speaker}:${emotionText} ${entry.text}\n\n`;
-    });
-    
-    return markdown;
+    return JSON.stringify(script, null, 2);
   }
 
   capitalizeFirst(text) {
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
+  
+  
   generateFilename(topic) {
     const date = new Date().toISOString().split('T')[0];
     const slug = topic
@@ -48,5 +57,9 @@ export class ScriptFormatter {
       .replace(/^-|-$/g, '');
     
     return `${slug}_${date}`;
+  }
+  
+  capitalizeFirst(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 }

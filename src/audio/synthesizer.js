@@ -10,7 +10,7 @@ export class AudioSynthesizer {
     };
   }
 
-  async synthesizeAudio(dialogue, outputPath) {
+  async synthesizeAudio(segments, outputPath) {
     try {
       await this.simulateApiCall(2000);
       
@@ -40,8 +40,8 @@ export class AudioSynthesizer {
     return new Promise(resolve => setTimeout(resolve, delay));
   }
 
-  estimateAudioDuration(dialogue) {
-    const totalCharacters = dialogue.reduce((sum, entry) => sum + entry.text.length, 0);
+  estimateAudioDuration(segments) {
+    const totalCharacters = segments.reduce((sum, segment) => sum + segment.text.length, 0);
     const avgCharactersPerSecond = 15;
     return Math.ceil(totalCharacters / avgCharactersPerSecond);
   }

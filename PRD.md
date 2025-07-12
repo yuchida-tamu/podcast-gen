@@ -47,39 +47,56 @@ podcast-gen "<topic>" [options]
   - `--output`: Output directory path (default: ./output)
 - **Output**: Success/error messages with file paths
 
-##### 3.1.2 Dialogue Generation
-- **Two distinct AI agents**:
-  - Thesis Agent: Advocates for a position
-  - Antithesis Agent: Challenges and provides counterarguments
-- **Natural conversation flow**:
-  - Interruptions and overlaps
+##### 3.1.2 Monologue Generation
+- **Single AI narrator/host**:
+  - Engaging and knowledgeable voice
+  - Balanced perspective exploration
+  - Natural storytelling approach
+- **Natural speech patterns**:
   - Thinking pauses and fillers
-  - Emotional reactions
+  - Emotional reactions and emphasis
   - Personal anecdotes and examples
-- **Dialectical structure**:
-  - Opening: Introduction and initial positions
-  - Argumentation: Back-and-forth debate
-  - Synthesis: Finding common ground or higher understanding
+  - Smooth topic transitions
+- **Narrative structure**:
+  - Introduction: Topic introduction and context (15%)
+  - Exploration: Deep dive into different aspects and perspectives (70%)
+  - Conclusion: Summary and final thoughts (15%)
 
 ##### 3.1.3 Script Generation
-- **Format**: Markdown file with timestamps
+- **Format**: JSON file with structured data
 - **Contents**:
-  - Speaker labels (Agent names)
   - Timestamp markers (MM:SS format)
-  - Dialogue text with natural speech patterns
-  - Emotion/tone indicators in brackets
+  - Monologue segments with natural speech patterns
+  - Emotion/tone indicators for TTS
+  - Metadata for duration and structure
 - **Example**:
-  ```markdown
-  [00:00] Alex: So I've been thinking about this whole social media thing...
-  [00:05] Jordan: [laughs] Oh boy, here we go again. What now?
+  ```json
+  {
+    "title": "Social Media Impact on Society",
+    "generated": "2024-01-07T14:30:00Z",
+    "duration": 300,
+    "segments": [
+      {
+        "timestamp": "00:00",
+        "text": "You know, I've been thinking about social media lately...",
+        "emotion": "thoughtful",
+        "duration": 6
+      }
+    ],
+    "metadata": {
+      "topic": "Social media impact",
+      "totalSegments": 25,
+      "estimatedDuration": 298
+    }
+  }
   ```
 
 ##### 3.1.4 Audio Synthesis
 - **Text-to-Speech**: Integration with ElevenLabs API
 - **Voice Characteristics**:
-  - Two distinct voices (one per agent)
+  - Single consistent narrator voice
   - Natural pacing and intonation
-  - Emotional expression matching dialogue
+  - Emotional expression matching content
 - **Output Format**: MP3 file, podcast-ready quality
 
 #### 3.2 Technical Requirements
@@ -135,53 +152,66 @@ podcast-gen "<topic>" [options]
 2. System displays: "🎙️ Generating podcast on: 'Is universal basic income feasible?'"
 3. Progress indicators show:
    - "Analyzing topic..."
-   - "Creating natural conversation..."
+   - "Creating narrative content..."
    - "Formatting script..."
-   - "Synthesizing voices..."
+   - "Synthesizing voice..."
 4. System outputs:
    - "✓ Podcast generated successfully!"
-   - "📝 Script: ./output/ubi-feasibility_2024-01-07.md"
+   - "📝 Script: ./output/ubi-feasibility_2024-01-07.json"
    - "🎵 Audio: ./output/ubi-feasibility_2024-01-07.mp3"
 ```
 
 ### 6. Example Output Specifications
 
 #### 6.1 Script Example (First 30 seconds)
-```markdown
-# Is Universal Basic Income Feasible?
-Generated: 2024-01-07 14:30
-
-[00:00] Sam: You know, I've been reading about Finland's UBI experiment, and honestly? I think we're overthinking this whole thing.
-
-[00:06] Riley: [curious] Overthinking? Sam, we're talking about restructuring the entire social safety net. How can you overthink that?
-
-[00:13] Sam: Fair point, but hear me out. We already have so many overlapping welfare programs—food stamps, housing assistance, unemployment benefits... What if we just simplified everything?
-
-[00:22] Riley: Hmm... I mean, I get the appeal of simplicity, but you're assuming the costs would balance out. The math doesn't really—
-
-[00:28] Sam: Actually, that's exactly what I'm saying! When you factor in administrative costs...
+```json
+{
+  "title": "Is Universal Basic Income Feasible?",
+  "generated": "2024-01-07T14:30:00Z",
+  "duration": 300,
+  "segments": [
+    {
+      "timestamp": "00:00",
+      "text": "You know, I've been diving deep into Finland's UBI experiment lately, and honestly? It's got me thinking we might be overthinking this whole universal basic income debate.",
+      "emotion": "thoughtful",
+      "duration": 8
+    },
+    {
+      "timestamp": "00:08",
+      "text": "Here's what's fascinating - when you really look at our current welfare system, we already have this incredibly complex web of programs. Food stamps, housing assistance, unemployment benefits, disability payments... the administrative overhead alone is staggering.",
+      "emotion": "engaging",
+      "duration": 12
+    },
+    {
+      "timestamp": "00:20",
+      "text": "But what if - and stay with me here - what if we could simplify all of that into one streamlined system? That's essentially what UBI proposes.",
+      "emotion": "curious",
+      "duration": 8
+    }
+  ]
+}
 ```
 
 #### 6.2 Audio Specifications
 - **Format**: MP3, 128kbps minimum
 - **Length**: 5 or 10 minutes (±30 seconds)
-- **Voices**: Two distinct speakers, consistent throughout
+- **Voice**: Single consistent narrator throughout
 - **Quality**: Clear speech, no artifacts, natural pacing
 
 ### 7. Constraints and Limitations
 
 #### 7.1 MVP Limitations
 - Fixed podcast lengths (5 or 10 minutes only)
-- Two agents only (no multi-party conversations)
+- Single narrator only (no multi-voice conversations)
 - English language only
 - Preset voice options
 - No background music or sound effects
 
 #### 7.2 Content Guidelines
 - Avoid generating harmful or offensive content
-- Maintain balanced perspectives
-- No personal attacks between agents
-- Focus on ideas rather than individuals
+- Maintain balanced perspectives within monologue
+- Present multiple viewpoints fairly
+- Focus on ideas and concepts rather than individuals
 
 ### 8. Future Enhancements (Post-MVP)
 
