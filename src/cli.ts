@@ -22,58 +22,113 @@ import {
 } from './utils/progress.js';
 import type { CliOptions } from './types/index.js';
 
-dotenv.config();
+// Dependencies interface for testing
+export interface Dependencies {
+  fs: typeof fs;
+  path: typeof path;
+  MonologueEngine: typeof MonologueEngine;
+  ScriptFormatter: typeof ScriptFormatter;
+  AudioSynthesizer: typeof AudioSynthesizer;
+  validateTopic: typeof validateTopic;
+  validateDuration: typeof validateDuration;
+  validateApiKey: typeof validateApiKey;
+  handleError: typeof handleError;
+  showProgress: typeof showProgress;
+  showStep: typeof showStep;
+  showSuccess: typeof showSuccess;
+  showError: typeof showError;
+  showFileOutput: typeof showFileOutput;
+}
 
-const program = new Command();
+// Default dependencies
+const defaultDependencies: Dependencies = {
+  fs,
+  path,
+  MonologueEngine,
+  ScriptFormatter,
+  AudioSynthesizer,
+  validateTopic,
+  validateDuration,
+  validateApiKey,
+  handleError,
+  showProgress,
+  showStep,
+  showSuccess,
+  showError,
+  showFileOutput,
+};
 
-program
-  .name('podcast-gen')
-  .description('AI-Powered Monologue Podcast Generator')
-  .version('1.0.0');
+export async function generatePodcast(
+  topic: string, 
+  options: CliOptions, 
+  deps: Dependencies = defaultDependencies
+): Promise<void> {
+  const duration = parseInt(options.duration);
+  const outputDir = deps.path.resolve(options.output);
 
-program
-  .argument('<topic>', 'Topic for the monologue podcast')
-  .option('-d, --duration <minutes>', 'Duration in minutes (5 or 10)', '5')
-  .option('-o, --output <path>', 'Output directory', './output')
-  .action(async (topic: string, options: CliOptions) => {
-    try {
-      const duration = parseInt(options.duration);
-      const outputDir = path.resolve(options.output);
+  // Validation
+  deps.validateTopic(topic);
+  deps.validateDuration(duration);
+  deps.validateApiKey();
 
-      validateTopic(topic);
-      validateDuration(duration);
-      validateApiKey();
+  deps.showProgress(`Generating podcast on: '${topic}'`);
 
-      showProgress(`Generating podcast on: '${topic}'`);
+  // Ensure output directory exists
+  await deps.fs.ensureDir(outputDir);
 
-      await fs.ensureDir(outputDir);
+  // Initialize engines
+  const monologueEngine = new deps.MonologueEngine();
+  const scriptFormatter = new deps.ScriptFormatter();
+  const audioSynthesizer = new deps.AudioSynthesizer();
 
-      const monologueEngine = new MonologueEngine();
-      const scriptFormatter = new ScriptFormatter();
-      const audioSynthesizer = new AudioSynthesizer();
+  // Step 1: Generate monologue
+  deps.showStep(1, 4, 'Analyzing topic...');
+  const segments = await monologueEngine.generateMonologue(topic, duration);
 
-      showStep(1, 4, 'Analyzing topic...');
-      const segments = await monologueEngine.generateMonologue(topic, duration);
+  // Step 2: Format script
+  deps.showStep(2, 4, 'Creating narrative content...');
+  const jsonScript = await scriptFormatter.formatScript(segments, topic);
 
-      showStep(2, 4, 'Creating narrative content...');
-      const jsonScript = await scriptFormatter.formatScript(segments, topic);
+  // Step 3: Save script file
+  deps.showStep(3, 4, 'Formatting script...');
+  const filename = scriptFormatter.generateFilename(topic);
+  const jsonPath = deps.path.join(outputDir, `${filename}.json`);
+  await deps.fs.writeFile(jsonPath, jsonScript);
 
-      showStep(3, 4, 'Formatting script...');
-      const filename = scriptFormatter.generateFilename(topic);
-      const jsonPath = path.join(outputDir, `${filename}.json`);
-      await fs.writeFile(jsonPath, jsonScript);
+  // Step 4: Generate audio
+  deps.showStep(4, 4, 'Synthesizing voice...');
+  const audioPath = deps.path.join(outputDir, `${filename}.mp3`);
+  await audioSynthesizer.synthesizeAudio(segments, audioPath);
 
-      showStep(4, 4, 'Synthesizing voice...');
-      const audioPath = path.join(outputDir, `${filename}.mp3`);
-      await audioSynthesizer.synthesizeAudio(segments, audioPath);
+  // Success
+  deps.showSuccess('Podcast generated successfully!');
+  deps.showFileOutput('script', jsonPath);
+  deps.showFileOutput('audio', audioPath);
+}
 
-      showSuccess('Podcast generated successfully!');
-      showFileOutput('script', jsonPath);
-      showFileOutput('audio', audioPath);
-    } catch (error) {
-      showError('Failed to generate podcast');
-      handleError(error as Error);
-    }
-  });
+// CLI setup - only runs when this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  dotenv.config();
 
-program.parse();
+  const program = new Command();
+
+  program
+    .name('podcast-gen')
+    .description('AI-Powered Monologue Podcast Generator')
+    .version('1.0.0');
+
+  program
+    .argument('<topic>', 'Topic for the monologue podcast')
+    .option('-d, --duration <minutes>', 'Duration in minutes (5 or 10)', '5')
+    .option('-o, --output <path>', 'Output directory', './output')
+    .action(async (topic: string, options: CliOptions) => {
+      try {
+        await generatePodcast(topic, options);
+      } catch (error) {
+        showError('Failed to generate podcast');
+        handleError(error as Error);
+      }
+    });
+
+  program.parse();
+}
