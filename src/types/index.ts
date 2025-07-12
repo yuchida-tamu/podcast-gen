@@ -52,16 +52,6 @@ export interface ApiResponse {
   content: Array<{ text: string }>;
 }
 
-export class PodcastGenerationError extends Error {
-  public readonly phase: string;
-  
-  constructor(message: string, phase: string = 'unknown') {
-    super(message);
-    this.name = 'PodcastGenerationError';
-    this.phase = phase;
-  }
-}
-
 // CLI types
 export interface CliOptions {
   duration: string;
