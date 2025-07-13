@@ -37,7 +37,13 @@ export const NARRATOR_PROMPT: NarratorPrompt = {
 - Emotional indicators in brackets when appropriate: [excited], [thoughtful], [concerned], [curious]
 - Thinking pauses: "um", "well", "you know"
 - Natural transitions between ideas
-- No formal structure - just engaging, natural conversation`
+- No formal structure - just engaging, natural conversation
+
+⚠️ CRITICAL CHARACTER LIMIT RESTRICTION ⚠️
+🚨 MANDATORY: Your response MUST NOT exceed 3500 characters (including spaces and punctuation)
+🚨 ABSOLUTE MAXIMUM: 4096 characters - exceeding this will cause technical failure
+🚨 RECOMMENDED TARGET: Keep segments between 2000-3500 characters for optimal processing
+⛔ COUNT YOUR CHARACTERS before responding - this is a HARD technical constraint`
 };
 
 export const NARRATIVE_PHASES: NarrativePhases = {
@@ -77,9 +83,18 @@ export function createMonologuePrompt(
 <phase_instructions>${phaseInfo.instructions}</phase_instructions>
 ${contentHistory}
 
+🚨🚨🚨 CRITICAL TECHNICAL REQUIREMENT 🚨🚨🚨
+⛔ ABSOLUTE CHARACTER LIMIT: Your response MUST NOT exceed 3500 characters
+⛔ HARD MAXIMUM: 4096 characters (technical system limitation)
+⛔ FAILURE TO COMPLY will cause audio generation to FAIL completely
+⛔ COUNT CHARACTERS before submitting your response
+🚨🚨🚨 THIS IS A MANDATORY CONSTRAINT 🚨🚨🚨
+
 You are creating a ${phase} segment for a podcast monologue about this topic. 
 
 Generate natural, engaging content that flows well as spoken audio. Aim for about ${phase === 'introduction' ? '1-2 minutes' : phase === 'exploration' ? '4-6 minutes' : '1 minute'} of speaking time.
 
-Focus on being conversational, insightful, and engaging for podcast listeners.`;
+Focus on being conversational, insightful, and engaging for podcast listeners.
+
+REMEMBER: Keep your response under 3500 characters - this is a strict technical requirement!`;
 }
