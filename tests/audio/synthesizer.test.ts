@@ -55,128 +55,14 @@ describe('AudioSynthesizer', () => {
   });
 
   describe('synthesizeAudio', () => {
-    test('shouldSynthesizeAudioSuccessfully', async () => {
-      const mockResponse = {
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-      };
-      mockAudioSpeech.create.mockResolvedValue(mockResponse);
-
-      const segments: Partial<MonologueSegment>[] = [
-        { text: 'Hello world', timestamp: '00:00' },
-        { text: 'This is a test', timestamp: '00:05' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-      const result = await audioSynthesizer.synthesizeAudio(segments, outputPath);
-
-      expect(result).toBe(outputPath);
-      expect(mockAudioSpeech.create).toHaveBeenCalledWith({
-        model: 'tts-1',
-        voice: 'coral',
-        input: 'Hello world This is a test',
-      });
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        outputPath,
-        expect.any(Buffer)
-      );
-    });
-
-    test('shouldFilterEmptySegments', async () => {
-      const mockResponse = {
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-      };
-      mockAudioSpeech.create.mockResolvedValue(mockResponse);
-
-      const segments: Partial<MonologueSegment>[] = [
-        { text: 'Hello world', timestamp: '00:00' },
-        { text: '', timestamp: '00:05' },
-        { text: '   ', timestamp: '00:10' },
-        { text: 'This is a test', timestamp: '00:15' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-      await audioSynthesizer.synthesizeAudio(segments, outputPath);
-
-      expect(mockAudioSpeech.create).toHaveBeenCalledWith({
-        model: 'tts-1',
-        voice: 'coral',
-        input: 'Hello world This is a test',
-      });
-    });
-
-    test('shouldThrowErrorOnEmptyContent', async () => {
-      const segments: Partial<MonologueSegment>[] = [
-        { text: '', timestamp: '00:00' },
-        { text: '   ', timestamp: '00:05' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeAudio(segments, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-
-      expect(mockAudioSpeech.create).not.toHaveBeenCalled();
-    });
-
-    test('shouldThrowErrorOnNoTextContent', async () => {
-      const segments: Partial<MonologueSegment>[] = [
-        { timestamp: '00:00' },
-        { timestamp: '00:05' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeAudio(segments, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-    });
-
-    test('shouldHandleOpenAIAPIError', async () => {
-      const apiError = new Error('OpenAI API error');
-      mockAudioSpeech.create.mockRejectedValue(apiError);
-
-      const segments: Partial<MonologueSegment>[] = [
-        { text: 'Hello world', timestamp: '00:00' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeAudio(segments, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-
-      expect(mockAudioSpeech.create).toHaveBeenCalledOnce();
-    });
-
-    test('shouldHandleFileWriteError', async () => {
-      const mockResponse = {
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-      };
-      mockAudioSpeech.create.mockResolvedValue(mockResponse);
-      (fs.writeFile as any).mockRejectedValue(new Error('File write error'));
-
-      const segments: Partial<MonologueSegment>[] = [
-        { text: 'Hello world', timestamp: '00:00' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeAudio(segments, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-    });
-  });
-
-  describe('synthesizeFromFile', () => {
     test('shouldSynthesizeAudioFromScriptFile', async () => {
       const mockScriptData: ScriptOutput = {
         title: 'Test Podcast',
         generated: '2024-01-01T00:00:00Z',
         duration: 300,
         segments: [
-          { text: 'Introduction text', timestamp: '00:00', duration: 5 },
-          { text: 'Main content', timestamp: '00:05', duration: 10 },
+          { text: 'Hello world', timestamp: '00:00', duration: 5 },
+          { text: 'This is a test', timestamp: '00:05', duration: 10 },
         ],
         metadata: {
           topic: 'Test Topic',
@@ -185,6 +71,186 @@ describe('AudioSynthesizer', () => {
           format: 'monologue',
           version: '1.0.0',
         },
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+      
+      const mockResponse = {
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
+      };
+      mockAudioSpeech.create.mockResolvedValue(mockResponse);
+      (fs.writeFile as any).mockResolvedValue(undefined);
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+      const result = await audioSynthesizer.synthesizeAudio(scriptPath, outputPath);
+
+      expect(result).toEqual([
+        '/test/output_segment_001.mp3',
+        '/test/output_segment_002.mp3'
+      ]);
+      expect(fs.readFile).toHaveBeenCalledWith(scriptPath, 'utf-8');
+      expect(mockAudioSpeech.create).toHaveBeenCalledTimes(2);
+      expect(mockAudioSpeech.create).toHaveBeenNthCalledWith(1, {
+        model: 'tts-1',
+        voice: 'coral',
+        input: 'Hello world',
+      });
+      expect(mockAudioSpeech.create).toHaveBeenNthCalledWith(2, {
+        model: 'tts-1',
+        voice: 'coral',
+        input: 'This is a test',
+      });
+    });
+
+    test('shouldFilterEmptySegments', async () => {
+      const mockScriptData = {
+        segments: [
+          { text: 'Hello world', timestamp: '00:00' },
+          { text: '', timestamp: '00:05' },
+          { text: '   ', timestamp: '00:10' },
+          { text: 'This is a test', timestamp: '00:15' },
+        ],
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+      
+      const mockResponse = {
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
+      };
+      mockAudioSpeech.create.mockResolvedValue(mockResponse);
+      (fs.writeFile as any).mockResolvedValue(undefined);
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+      await audioSynthesizer.synthesizeAudio(scriptPath, outputPath);
+
+      expect(mockAudioSpeech.create).toHaveBeenCalledTimes(2);
+      expect(mockAudioSpeech.create).toHaveBeenNthCalledWith(1, {
+        model: 'tts-1',
+        voice: 'coral',
+        input: 'Hello world',
+      });
+      expect(mockAudioSpeech.create).toHaveBeenNthCalledWith(2, {
+        model: 'tts-1',
+        voice: 'coral',
+        input: 'This is a test',
+      });
+    });
+
+    test('shouldThrowErrorOnEmptyContent', async () => {
+      const mockScriptData = {
+        segments: [
+          { text: '', timestamp: '00:00' },
+          { text: '   ', timestamp: '00:05' },
+        ],
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+
+      expect(mockAudioSpeech.create).not.toHaveBeenCalled();
+    });
+
+    test('shouldThrowErrorOnNoTextContent', async () => {
+      const mockScriptData = {
+        segments: [
+          { timestamp: '00:00' },
+          { timestamp: '00:05' },
+        ],
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+    });
+
+    test('shouldHandleOpenAIAPIError', async () => {
+      const mockScriptData = {
+        segments: [{ text: 'Hello world', timestamp: '00:00' }],
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+      
+      const apiError = new Error('OpenAI API error');
+      mockAudioSpeech.create.mockRejectedValue(apiError);
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+
+      expect(mockAudioSpeech.create).toHaveBeenCalledOnce();
+    });
+
+    test('shouldHandleFileWriteError', async () => {
+      const mockScriptData = {
+        segments: [{ text: 'Hello world', timestamp: '00:00' }],
+      };
+
+      (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
+      
+      const mockResponse = {
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
+      };
+      mockAudioSpeech.create.mockResolvedValue(mockResponse);
+      (fs.writeFile as any).mockRejectedValue(new Error('File write error'));
+
+      const scriptPath = '/test/script.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+    });
+
+    test('shouldThrowErrorOnFileNotFound', async () => {
+      const fileError = new Error('File not found');
+      (fileError as any).code = 'ENOENT';
+      (fs.readFile as any).mockRejectedValue(fileError);
+
+      const scriptPath = '/test/nonexistent.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+    });
+
+    test('shouldThrowErrorOnInvalidJSON', async () => {
+      (fs.readFile as any).mockResolvedValue('invalid json content');
+
+      const scriptPath = '/test/invalid.json';
+      const outputPath = '/test/output.mp3';
+
+      await expect(
+        audioSynthesizer.synthesizeAudio(scriptPath, outputPath)
+      ).rejects.toThrow(PodcastGenerationError);
+    });
+  });
+
+  describe('Custom Configuration', () => {
+    test('shouldUseCustomVoiceAndModel', async () => {
+      const customSynthesizer = new AudioSynthesizer(mockOpenAIClient, {
+        voice: 'nova',
+        model: 'tts-1-hd',
+      });
+
+      const mockScriptData = {
+        segments: [{ text: 'Hello world', timestamp: '00:00' }],
       };
 
       (fs.readFile as any).mockResolvedValue(JSON.stringify(mockScriptData));
@@ -197,103 +263,7 @@ describe('AudioSynthesizer', () => {
 
       const scriptPath = '/test/script.json';
       const outputPath = '/test/output.mp3';
-
-      const result = await audioSynthesizer.synthesizeFromFile(scriptPath, outputPath);
-
-      expect(result).toBe(outputPath);
-      expect(fs.readFile).toHaveBeenCalledWith(scriptPath, 'utf-8');
-      expect(mockAudioSpeech.create).toHaveBeenCalledWith({
-        model: 'tts-1',
-        voice: 'coral',
-        input: 'Introduction text Main content',
-      });
-    });
-
-    test('shouldThrowErrorOnFileNotFound', async () => {
-      const fileError = new Error('File not found');
-      (fileError as any).code = 'ENOENT';
-      (fs.readFile as any).mockRejectedValue(fileError);
-
-      const scriptPath = '/test/nonexistent.json';
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeFromFile(scriptPath, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-
-      const error = await audioSynthesizer.synthesizeFromFile(scriptPath, outputPath).catch(e => e);
-      expect(error.message).toContain('Script file not found');
-    });
-
-    test('shouldThrowErrorOnInvalidJSON', async () => {
-      (fs.readFile as any).mockResolvedValue('invalid json content');
-
-      const scriptPath = '/test/invalid.json';
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeFromFile(scriptPath, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-
-      const error = await audioSynthesizer.synthesizeFromFile(scriptPath, outputPath).catch(e => e);
-      expect(error.message).toContain('Invalid JSON format');
-    });
-
-    test('shouldThrowErrorOnMissingSegments', async () => {
-      const invalidScriptData = {
-        title: 'Test Podcast',
-        // Missing segments array
-      };
-
-      (fs.readFile as any).mockResolvedValue(JSON.stringify(invalidScriptData));
-
-      const scriptPath = '/test/invalid.json';
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeFromFile(scriptPath, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-
-      const error = await audioSynthesizer.synthesizeFromFile(scriptPath, outputPath).catch(e => e);
-      expect(error.message).toContain('Invalid script format');
-    });
-
-    test('shouldThrowErrorOnInvalidSegmentsType', async () => {
-      const invalidScriptData = {
-        title: 'Test Podcast',
-        segments: 'not an array',
-      };
-
-      (fs.readFile as any).mockResolvedValue(JSON.stringify(invalidScriptData));
-
-      const scriptPath = '/test/invalid.json';
-      const outputPath = '/test/output.mp3';
-
-      await expect(
-        audioSynthesizer.synthesizeFromFile(scriptPath, outputPath)
-      ).rejects.toThrow(PodcastGenerationError);
-    });
-  });
-
-  describe('Custom Configuration', () => {
-    test('shouldUseCustomVoiceAndModel', async () => {
-      const customSynthesizer = new AudioSynthesizer(mockOpenAIClient, {
-        voice: 'nova',
-        model: 'tts-1-hd',
-      });
-
-      const mockResponse = {
-        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-      };
-      mockAudioSpeech.create.mockResolvedValue(mockResponse);
-      (fs.writeFile as any).mockResolvedValue(undefined);
-
-      const segments: Partial<MonologueSegment>[] = [
-        { text: 'Hello world', timestamp: '00:00' },
-      ];
-
-      const outputPath = '/test/output.mp3';
-      await customSynthesizer.synthesizeAudio(segments, outputPath);
+      await customSynthesizer.synthesizeAudio(scriptPath, outputPath);
 
       expect(mockAudioSpeech.create).toHaveBeenCalledWith({
         model: 'tts-1-hd',

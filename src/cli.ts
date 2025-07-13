@@ -22,6 +22,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .argument('<topic>', 'Topic for the monologue podcast')
     .option('-d, --duration <minutes>', 'Duration in minutes (5 or 10)', '5')
     .option('-o, --output <path>', 'Output directory', './output')
+    .option('-s, --scrip <script>', 'Script path for audio synthesis', '')
     .action(async (topic: string, options: CliOptions) => {
       try {
         await generatePodcast(topic, options);

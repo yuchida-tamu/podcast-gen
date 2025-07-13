@@ -81,27 +81,39 @@ export async function generatePodcast(
   const scriptFormatter = new deps.ScriptFormatter();
   const audioSynthesizer = new deps.AudioSynthesizer(openaiClient);
 
-  // Step 1: Generate monologue
-  deps.showStep(1, 4, 'Analyzing topic...');
-  const segments = await monologueEngine.generateMonologue(topic, duration);
+  let jsonPath = options.script;
+  let filename = '';
 
-  // Step 2: Format script
-  deps.showStep(2, 4, 'Creating narrative content...');
-  const jsonScript = await scriptFormatter.formatScript(segments, topic);
+  if (jsonPath === '') {
+    // Step 1: Generate monologue
+    deps.showStep(1, 4, 'Analyzing topic...');
+    const segments = await monologueEngine.generateMonologue(topic, duration);
 
-  // Step 3: Save script file
-  deps.showStep(3, 4, 'Formatting script...');
-  const filename = scriptFormatter.generateFilename(topic);
-  const jsonPath = deps.path.join(outputDir, `${filename}.json`);
-  await deps.fs.writeFile(jsonPath, jsonScript);
+    // Step 2: Format script
+    deps.showStep(2, 4, 'Creating narrative content...');
+    const jsonScript = await scriptFormatter.formatScript(segments, topic);
+
+    // Step 3: Save script file
+    deps.showStep(3, 4, 'Formatting script...');
+    filename = scriptFormatter.generateFilename(topic);
+    jsonPath = deps.path.join(outputDir, `${filename}.json`);
+    await deps.fs.writeFile(jsonPath, jsonScript);
+  }
 
   // Step 4: Generate audio
   deps.showStep(4, 4, 'Synthesizing voice...');
   const audioPath = deps.path.join(outputDir, `${filename}.mp3`);
-  await audioSynthesizer.synthesizeAudio(segments, audioPath);
+  const segmentFiles = await audioSynthesizer.synthesizeAudio(
+    jsonPath,
+    audioPath
+  );
 
   // Success
   deps.showSuccess('Podcast generated successfully!');
   deps.showFileOutput('script', jsonPath);
-  deps.showFileOutput('audio', audioPath);
+
+  // Show all generated audio segment files
+  segmentFiles.forEach((segmentPath, index) => {
+    deps.showFileOutput(`audio segment ${index + 1}`, segmentPath);
+  });
 }

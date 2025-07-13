@@ -56,6 +56,7 @@ export interface ApiResponse {
 export interface CliOptions {
   duration: string;
   output: string;
+  script: string;
 }
 
 // Progress types

@@ -12,7 +12,7 @@ describe('CLI - generatePodcast', () => {
     // Set up environment variables for API keys
     process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-for-testing';
     process.env.OPENAI_API_KEY = 'sk-test-openai-key-for-testing';
-    
+
     // Mock class instances
     mockMonologueEngine = {
       generateMonologue: vi.fn().mockResolvedValue([
@@ -31,7 +31,12 @@ describe('CLI - generatePodcast', () => {
     };
 
     mockAudioSynthesizer = {
-      synthesizeAudio: vi.fn().mockResolvedValue('/path/to/audio.mp3'),
+      synthesizeAudio: vi
+        .fn()
+        .mockResolvedValue([
+          '/path/to/audio_segment_001.mp3',
+          '/path/to/audio_segment_002.mp3',
+        ]),
     };
 
     // Mock dependencies
@@ -78,6 +83,7 @@ describe('CLI - generatePodcast', () => {
       const options: CliOptions = {
         duration: '5',
         output: './test-output',
+        script: '',
       };
 
       // When: Generating podcast
@@ -94,7 +100,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldCreateOutputDirectoryAndInstantiateEngines', async () => {
       // Given: Valid inputs
       const topic = 'test topic';
-      const options: CliOptions = { duration: '10', output: './output' };
+      const options: CliOptions = { duration: '10', output: './output', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -113,7 +119,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldExecuteGenerationStepsInCorrectOrder', async () => {
       // Given: Valid inputs
       const topic = 'machine learning';
-      const options: CliOptions = { duration: '5', output: './test' };
+      const options: CliOptions = { duration: '5', output: './test', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -148,7 +154,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldWriteFilesToCorrectPaths', async () => {
       // Given: Valid inputs
       const topic = 'climate change';
-      const options: CliOptions = { duration: '5', output: './custom-output' };
+      const options: CliOptions = { duration: '5', output: './custom-output', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -159,14 +165,7 @@ describe('CLI - generatePodcast', () => {
         '{"test": "json"}'
       );
       expect(mockAudioSynthesizer.synthesizeAudio).toHaveBeenCalledWith(
-        [
-          {
-            timestamp: '00:00',
-            text: 'Test content',
-            emotion: 'neutral',
-            duration: 30,
-          },
-        ],
+        '/resolved/output/path/test-topic_2025-07-12.json',
         '/resolved/output/path/test-topic_2025-07-12.mp3'
       );
     });
@@ -174,7 +173,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldShowProgressAndSuccessMessages', async () => {
       // Given: Valid inputs
       const topic = 'quantum computing';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -193,8 +192,12 @@ describe('CLI - generatePodcast', () => {
         '/resolved/output/path/test-topic_2025-07-12.json'
       );
       expect(mockDeps.showFileOutput).toHaveBeenCalledWith(
-        'audio',
-        '/resolved/output/path/test-topic_2025-07-12.mp3'
+        'audio segment 1',
+        '/path/to/audio_segment_001.mp3'
+      );
+      expect(mockDeps.showFileOutput).toHaveBeenCalledWith(
+        'audio segment 2',
+        '/path/to/audio_segment_002.mp3'
       );
     });
   });
@@ -203,7 +206,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldParseDurationStringToNumber', async () => {
       // Given: Duration as string
       const topic = 'test';
-      const options: CliOptions = { duration: '10', output: './output' };
+      const options: CliOptions = { duration: '10', output: './output', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -219,7 +222,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldResolveOutputPath', async () => {
       // Given: Relative output path
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: '../relative/path' };
+      const options: CliOptions = { duration: '5', output: '../relative/path', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -231,7 +234,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldHandleSpecialCharactersInTopic', async () => {
       // Given: Topic with special characters
       const topic = 'AI & Machine Learning: The Future (2025)!';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
 
       // When: Generating podcast
       await generatePodcast(topic, options, mockDeps);
@@ -251,7 +254,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenValidationFails', async () => {
       // Given: Validation that throws
       const topic = '';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       (mockDeps.validateTopic as any).mockImplementation(() => {
         throw new Error('Topic validation failed');
       });
@@ -268,7 +271,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenDurationValidationFails', async () => {
       // Given: Invalid duration
       const topic = 'test';
-      const options: CliOptions = { duration: '15', output: './output' };
+      const options: CliOptions = { duration: '15', output: './output', script: '' };
       (mockDeps.validateDuration as any).mockImplementation(() => {
         throw new Error('Duration must be 5 or 10 minutes');
       });
@@ -282,7 +285,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenApiKeyValidationFails', async () => {
       // Given: Missing API key
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       (mockDeps.validateApiKey as any).mockImplementation(() => {
         throw new Error('API key required');
       });
@@ -296,7 +299,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenFileSystemOperationFails', async () => {
       // Given: File system error
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       (mockDeps.fs.ensureDir as any).mockRejectedValue(
         new Error('Permission denied')
       );
@@ -315,7 +318,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenMonologueGenerationFails', async () => {
       // Given: MonologueEngine that throws
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockMonologueEngine.generateMonologue.mockRejectedValue(
         new Error('API failure')
       );
@@ -342,7 +345,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenScriptFormattingFails', async () => {
       // Given: ScriptFormatter that throws
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockScriptFormatter.formatScript.mockRejectedValue(
         new Error('Formatting error')
       );
@@ -363,7 +366,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenFileWriteFails', async () => {
       // Given: File write error
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       (mockDeps.fs.writeFile as any).mockRejectedValue(new Error('Disk full'));
 
       // When/Then: Should throw file write error
@@ -375,7 +378,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldThrowWhenAudioSynthesisFails', async () => {
       // Given: AudioSynthesizer that throws
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockAudioSynthesizer.synthesizeAudio.mockRejectedValue(
         new Error('Audio generation failed')
       );
@@ -398,7 +401,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldHandleEmptySegmentsFromMonologueEngine', async () => {
       // Given: MonologueEngine returns empty segments
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockMonologueEngine.generateMonologue.mockResolvedValue([]);
 
       // When: Generating podcast
@@ -407,7 +410,7 @@ describe('CLI - generatePodcast', () => {
       // Then: Should pass empty segments to formatter and synthesizer
       expect(mockScriptFormatter.formatScript).toHaveBeenCalledWith([], 'test');
       expect(mockAudioSynthesizer.synthesizeAudio).toHaveBeenCalledWith(
-        [],
+        '/resolved/output/path/test-topic_2025-07-12.json',
         expect.any(String)
       );
     });
@@ -415,7 +418,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldHandleEmptyJsonFromScriptFormatter', async () => {
       // Given: ScriptFormatter returns empty JSON
       const topic = 'test';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockScriptFormatter.formatScript.mockResolvedValue('{}');
 
       // When: Generating podcast
@@ -431,7 +434,7 @@ describe('CLI - generatePodcast', () => {
     test('shouldHandleComplexFilenames', async () => {
       // Given: Topic that generates complex filename
       const topic = 'Complex Topic with Symbols!';
-      const options: CliOptions = { duration: '5', output: './output' };
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
       mockScriptFormatter.generateFilename.mockReturnValue(
         'complex-topic-with-symbols_2025-07-12'
       );
@@ -445,7 +448,7 @@ describe('CLI - generatePodcast', () => {
         expect.any(String)
       );
       expect(mockAudioSynthesizer.synthesizeAudio).toHaveBeenCalledWith(
-        expect.any(Array),
+        '/resolved/output/path/complex-topic-with-symbols_2025-07-12.json',
         '/resolved/output/path/complex-topic-with-symbols_2025-07-12.mp3'
       );
     });
