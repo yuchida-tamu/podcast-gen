@@ -1,10 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type {
+  APIClientConfig,
   LLMConfig,
   LLMRequest,
   LLMResponse,
   LLMService,
-  APIClientConfig,
 } from '../types/index.js';
 import { validateApiKey } from '../utils/errors.js';
 import { APIClient } from './APIClient.js';
@@ -13,38 +13,34 @@ export class AnthropicService extends APIClient implements LLMService {
   private client: Anthropic;
   private llmConfig: LLMConfig;
 
-  constructor(config?: Partial<LLMConfig>) {
+  constructor(client: Anthropic, config?: Partial<LLMConfig>) {
     validateApiKey();
 
     const llmConfig: LLMConfig = {
       apiKey: process.env.ANTHROPIC_API_KEY || '',
       model: 'claude-3-5-sonnet-20241022',
       maxTokens: 500,
-      retries: 3,
-      timeout: 30000,
       ...config,
     };
 
     // Map LLM config to API config for APIClient
     const apiConfig: APIClientConfig = {
-      retries: llmConfig.retries,
-      timeout: llmConfig.timeout,
+      retries: 3,
+      timeout: 30000,
       baseDelay: 1000,
       maxDelay: 10000,
     };
 
     super(apiConfig);
     this.llmConfig = llmConfig;
-    this.client = new Anthropic({
-      apiKey: llmConfig.apiKey,
-    });
+    this.client = client;
   }
 
   // Implement the abstract fetch method from APIClient
   protected async fetch(request: LLMRequest): Promise<LLMResponse> {
     const response = await this.client.messages.create({
-      model: request.model || this.llmConfig.model,
-      max_tokens: request.maxTokens || this.llmConfig.maxTokens,
+      model: this.llmConfig.model,
+      max_tokens: this.llmConfig.maxTokens,
       system: request.systemPrompt,
       messages: [
         {
@@ -66,8 +62,7 @@ export class AnthropicService extends APIClient implements LLMService {
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
-        totalTokens:
-          response.usage.input_tokens + response.usage.output_tokens,
+        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
       },
     };
   }
@@ -82,7 +77,6 @@ export class AnthropicService extends APIClient implements LLMService {
       const testRequest: LLMRequest = {
         systemPrompt: 'You are a helpful assistant.',
         userPrompt: 'Say "healthy" if you can respond.',
-        maxTokens: 10,
       };
 
       const response = await this.generateContent(testRequest);

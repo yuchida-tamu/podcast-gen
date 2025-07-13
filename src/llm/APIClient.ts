@@ -1,4 +1,8 @@
-import type { APIClientConfig, LLMRequest, LLMResponse } from '../types/index.js';
+import type {
+  APIClientConfig,
+  LLMRequest,
+  LLMResponse,
+} from '../types/index.js';
 import {
   LLMAuthenticationError,
   LLMError,

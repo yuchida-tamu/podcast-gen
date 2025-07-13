@@ -75,8 +75,6 @@ export type ApiKey = string;
 export interface LLMRequest {
   systemPrompt: string;
   userPrompt: string;
-  maxTokens?: number;
-  model?: string;
 }
 
 export interface LLMResponse {
@@ -92,8 +90,6 @@ export interface LLMConfig {
   apiKey: string;
   model: string;
   maxTokens: number;
-  retries: number;
-  timeout: number;
 }
 
 export interface APIClientConfig {

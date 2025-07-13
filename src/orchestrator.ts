@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs-extra';
 import path from 'path';
 import { AudioSynthesizer } from './audio/synthesizer.js';
@@ -74,7 +75,9 @@ export async function generatePodcast(
   await deps.fs.ensureDir(outputDir);
 
   // Initialize engines
-  const llmService = new AnthropicService();
+  const llmService = new AnthropicService(
+    new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  );
   const monologueEngine = new deps.MonologueEngine(llmService);
   const scriptFormatter = new deps.ScriptFormatter();
   const audioSynthesizer = new deps.AudioSynthesizer();
