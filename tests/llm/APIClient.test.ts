@@ -1,10 +1,10 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { APIClient } from '../../src/llm/APIClient.js';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { APIClient } from '../../src/core/APIClient.js';
 import {
-  LLMError,
   LLMAuthenticationError,
-  LLMRateLimitError,
+  LLMError,
   LLMNetworkError,
+  LLMRateLimitError,
   type APIClientConfig,
 } from '../../src/types/index.js';
 
@@ -35,7 +35,7 @@ class TestAPIClient extends APIClient<MockRequest, MockResponse> {
     // Default mock response
     return {
       result: `processed: ${request.data}`,
-      success: true
+      success: true,
     };
   }
 
@@ -45,7 +45,9 @@ class TestAPIClient extends APIClient<MockRequest, MockResponse> {
   }
 
   // Expose protected method for testing
-  public async testExecuteWithRetry(request: MockRequest): Promise<MockResponse> {
+  public async testExecuteWithRetry(
+    request: MockRequest
+  ): Promise<MockResponse> {
     return this.executeWithRetry(request);
   }
 
@@ -87,16 +89,16 @@ describe('APIClient', () => {
     test('shouldReturnResultOnFirstSuccess', async () => {
       const expectedResponse: MockResponse = {
         result: 'success',
-        success: true
+        success: true,
       };
       const mockFetch = vi.fn().mockResolvedValue(expectedResponse);
       apiClient.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: '123'
+        id: '123',
       };
-      
+
       const result = await apiClient.testExecuteWithRetry(testRequest);
 
       expect(result).toEqual(expectedResponse);
@@ -107,23 +109,24 @@ describe('APIClient', () => {
     test('shouldRetryOnRetryableError', async () => {
       const expectedResponse: MockResponse = {
         result: 'success after retry',
-        success: true
+        success: true,
       };
-      
+
       const rateLimitError = new Error('Rate limit exceeded');
       (rateLimitError as any).status = 429;
-      
-      const mockFetch = vi.fn()
+
+      const mockFetch = vi
+        .fn()
         .mockRejectedValueOnce(rateLimitError)
         .mockResolvedValue(expectedResponse);
-      
+
       apiClient.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: '456'
+        id: '456',
       };
-      
+
       const result = await apiClient.testExecuteWithRetry(testRequest);
 
       expect(result).toEqual(expectedResponse);
@@ -133,18 +136,18 @@ describe('APIClient', () => {
     test('shouldNotRetryOnAuthenticationError', async () => {
       const authError = new Error('Authentication failed');
       (authError as any).status = 401;
-      
+
       const mockFetch = vi.fn().mockRejectedValue(authError);
       apiClient.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: '789'
+        id: '789',
       };
 
-      await expect(
-        apiClient.testExecuteWithRetry(testRequest)
-      ).rejects.toThrow(LLMAuthenticationError);
+      await expect(apiClient.testExecuteWithRetry(testRequest)).rejects.toThrow(
+        LLMAuthenticationError
+      );
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -156,12 +159,12 @@ describe('APIClient', () => {
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: 'error-test'
+        id: 'error-test',
       };
 
-      await expect(
-        apiClient.testExecuteWithRetry(testRequest)
-      ).rejects.toThrow(LLMError);
+      await expect(apiClient.testExecuteWithRetry(testRequest)).rejects.toThrow(
+        LLMError
+      );
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -169,16 +172,16 @@ describe('APIClient', () => {
     test('shouldThrowAfterMaxRetries', async () => {
       const networkError = new Error('Network error');
       (networkError as any).status = 500;
-      
+
       const mockFetch = vi.fn().mockRejectedValue(networkError);
-      
+
       // Use small retry count for faster test
       const clientWithFewRetries = new TestAPIClient({ retries: 2 });
       clientWithFewRetries.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: 'retry-test'
+        id: 'retry-test',
       };
 
       await expect(
@@ -191,14 +194,14 @@ describe('APIClient', () => {
     test('shouldThrowWrappedErrorWhenAllRetriesExhausted', async () => {
       const persistentError = new Error('Persistent error');
       (persistentError as any).status = 500;
-      
+
       const mockFetch = vi.fn().mockRejectedValue(persistentError);
       const clientWithFewRetries = new TestAPIClient({ retries: 1 });
       clientWithFewRetries.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: 'persistent-error-test'
+        id: 'persistent-error-test',
       };
 
       await expect(
@@ -323,18 +326,16 @@ describe('APIClient', () => {
     test('shouldUseCustomRetryCount', async () => {
       const customRetries = 1;
       const client = new TestAPIClient({ retries: customRetries });
-      
+
       const mockFetch = vi.fn().mockRejectedValue(new Error('Always fails'));
       client.setMockFetch(mockFetch);
 
       const testRequest: MockRequest = {
         data: 'test data',
-        id: 'config-test'
+        id: 'config-test',
       };
 
-      await expect(
-        client.testExecuteWithRetry(testRequest)
-      ).rejects.toThrow();
+      await expect(client.testExecuteWithRetry(testRequest)).rejects.toThrow();
 
       expect(mockFetch).toHaveBeenCalledTimes(customRetries);
     });

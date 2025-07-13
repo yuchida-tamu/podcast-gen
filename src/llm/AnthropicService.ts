@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { APIClient } from '../core/APIClient.js';
 import type {
   APIClientConfig,
   LLMConfig,
@@ -7,9 +8,11 @@ import type {
   LLMService,
 } from '../types/index.js';
 import { validateApiKey } from '../utils/errors.js';
-import { APIClient } from './APIClient.js';
 
-export class AnthropicService extends APIClient<LLMRequest, LLMResponse> implements LLMService {
+export class AnthropicService
+  extends APIClient<LLMRequest, LLMResponse>
+  implements LLMService
+{
   private client: Anthropic;
   private llmConfig: LLMConfig;
 
