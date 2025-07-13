@@ -1,8 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs-extra';
+import OpenAI from 'openai';
 import path from 'path';
 import { AudioSynthesizer } from './audio/synthesizer.js';
-import { AnthropicService } from './llm/AnthropicService.js';
+import { OpenAIService } from './llm/OpenAIService';
 import { MonologueEngine } from './monologue/engine.js';
 import { ScriptFormatter } from './script/formatter.js';
 import { CliOptions } from './types';
@@ -75,8 +75,8 @@ export async function generatePodcast(
   await deps.fs.ensureDir(outputDir);
 
   // Initialize engines
-  const llmService = new AnthropicService(
-    new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const llmService = new OpenAIService(
+    new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   );
   const monologueEngine = new deps.MonologueEngine(llmService);
   const scriptFormatter = new deps.ScriptFormatter();

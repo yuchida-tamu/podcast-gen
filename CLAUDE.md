@@ -154,6 +154,7 @@ npm run lint:fix   # Fix ESLint issues
 Create a `.env` file in the root directory:
 
 ```env
+ANTHROPIC_API_KEY=your_anthropic_key_here
 OPENAI_API_KEY=your_openai_key_here
 ELEVENLABS_API_KEY=your_elevenlabs_key_here
 ```
