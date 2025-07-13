@@ -75,12 +75,11 @@ export async function generatePodcast(
   await deps.fs.ensureDir(outputDir);
 
   // Initialize engines
-  const llmService = new OpenAIService(
-    new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  );
+  const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const llmService = new OpenAIService(openaiClient);
   const monologueEngine = new deps.MonologueEngine(llmService);
   const scriptFormatter = new deps.ScriptFormatter();
-  const audioSynthesizer = new deps.AudioSynthesizer();
+  const audioSynthesizer = new deps.AudioSynthesizer(openaiClient);
 
   // Step 1: Generate monologue
   deps.showStep(1, 4, 'Analyzing topic...');

@@ -9,8 +9,9 @@ describe('CLI - generatePodcast', () => {
   let mockAudioSynthesizer: any;
 
   beforeEach(() => {
-    // Set up environment variable for AnthropicService
+    // Set up environment variables for API keys
     process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-for-testing';
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key-for-testing';
     
     // Mock class instances
     mockMonologueEngine = {
@@ -66,6 +67,8 @@ describe('CLI - generatePodcast', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
   });
 
   describe('Successful podcast generation', () => {
