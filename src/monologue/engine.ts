@@ -126,9 +126,14 @@ export class MonologueEngine {
     return text.replace(/\[([^\]]+)\]/g, '').trim();
   }
 
+  /**
+   *
+   * @param duration total duration of an audio episode (in minute)
+   * @returns
+   */
   private calculateTargetSegments(duration: number): number {
     // Aim for segments of about 20-30 seconds each
-    return Math.floor(duration * 2);
+    return Math.floor((duration * 60) / 30);
   }
 
   private estimateDuration(text: string): number {

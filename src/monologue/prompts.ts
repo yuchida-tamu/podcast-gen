@@ -1,4 +1,9 @@
-import type { NarratorPrompt, NarrativePhases, NarrativePhase, MonologueSegment } from '../types/index.js';
+import type {
+  MonologueSegment,
+  NarrativePhase,
+  NarrativePhases,
+  NarratorPrompt,
+} from '../types/index.js';
 
 export const NARRATOR_PROMPT: NarratorPrompt = {
   personality: `You are an engaging podcast narrator who creates thoughtful, balanced monologues on various topics. You have a natural, conversational speaking style that makes complex topics accessible and interesting.
@@ -43,38 +48,44 @@ export const NARRATOR_PROMPT: NarratorPrompt = {
 🚨 MANDATORY: Your response MUST NOT exceed 3500 characters (including spaces and punctuation)
 🚨 ABSOLUTE MAXIMUM: 4096 characters - exceeding this will cause technical failure
 🚨 RECOMMENDED TARGET: Keep segments between 2000-3500 characters for optimal processing
-⛔ COUNT YOUR CHARACTERS before responding - this is a HARD technical constraint`
+⛔ COUNT YOUR CHARACTERS before responding - this is a HARD technical constraint`,
 };
 
 export const NARRATIVE_PHASES: NarrativePhases = {
   introduction: {
     description: 'Topic introduction and context setting',
-    instructions: 'Introduce the topic in an engaging way. Set the context and explain why this topic matters. Hook the listener with interesting facts or questions.',
-    targetPercentage: 15
+    instructions:
+      'Introduce the topic in an engaging way. Set the context and explain why this topic matters. Hook the listener with interesting facts or questions.',
+    targetPercentage: 15,
   },
-  
+
   exploration: {
     description: 'Deep dive into different aspects and perspectives',
-    instructions: 'Explore the topic from multiple angles. Present different viewpoints, share examples, discuss implications. This is the main content section.',
-    targetPercentage: 70
+    instructions:
+      'Explore the topic from multiple angles. Present different viewpoints, share examples, discuss implications. This is the main content section.',
+    targetPercentage: 70,
   },
-  
+
   conclusion: {
     description: 'Summary and final thoughts',
-    instructions: 'Wrap up the discussion with key insights. Summarize the main points and offer thoughtful final reflections on the topic.',
-    targetPercentage: 15
-  }
+    instructions:
+      'Wrap up the discussion with key insights. Summarize the main points and offer thoughtful final reflections on the topic.',
+    targetPercentage: 15,
+  },
 };
 
 export function createMonologuePrompt(
-  topic: string, 
-  phase: NarrativePhase, 
+  topic: string,
+  phase: NarrativePhase,
   previousContent: MonologueSegment[] = []
 ): string {
   const phaseInfo = NARRATIVE_PHASES[phase];
-  const contentHistory = previousContent.length > 0 
-    ? `\n<previous_content>\n${previousContent.map(segment => segment.text).join('\n')}\n</previous_content>\n`
-    : '';
+  const contentHistory =
+    previousContent.length > 0
+      ? `\n<previous_content>\n${previousContent
+          .map((segment) => segment.text)
+          .join('\n')}\n</previous_content>\n`
+      : '';
 
   return `<topic>${topic}</topic>
 
@@ -92,9 +103,9 @@ ${contentHistory}
 
 You are creating a ${phase} segment for a podcast monologue about this topic. 
 
-Generate natural, engaging content that flows well as spoken audio. Aim for about ${phase === 'introduction' ? '1-2 minutes' : phase === 'exploration' ? '4-6 minutes' : '1 minute'} of speaking time.
+Generate natural, engaging content that flows well as spoken audio. Aim for about 30 seconds of speaking time.
 
 Focus on being conversational, insightful, and engaging for podcast listeners.
 
-REMEMBER: Keep your response under 3500 characters - this is a strict technical requirement!`;
+REMEMBER: Keep your response under 150 words 650 characters - this is a strict technical requirement!`;
 }
