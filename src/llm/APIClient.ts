@@ -1,8 +1,4 @@
-import type {
-  APIClientConfig,
-  LLMRequest,
-  LLMResponse,
-} from '../types/index.js';
+import type { APIClientConfig } from '../types/index.js';
 import {
   LLMAuthenticationError,
   LLMError,
@@ -10,7 +6,7 @@ import {
   LLMRateLimitError,
 } from '../types/index.js';
 
-export abstract class APIClient {
+export abstract class APIClient<TRequest, TResponse> {
   protected config: APIClientConfig;
 
   constructor(config?: Partial<APIClientConfig>) {
@@ -23,10 +19,10 @@ export abstract class APIClient {
     };
   }
 
-  // Abstract method that subclasses must implement
-  protected abstract fetch(request: LLMRequest): Promise<LLMResponse>;
+  // Abstract method that subclasses must implement with generic types
+  protected abstract fetch(request: TRequest): Promise<TResponse>;
 
-  protected async executeWithRetry(request: LLMRequest): Promise<LLMResponse> {
+  protected async executeWithRetry(request: TRequest): Promise<TResponse> {
     const maxRetries = this.config.retries;
     const errorHandler = this.createStandardErrorHandler();
 

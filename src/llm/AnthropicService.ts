@@ -9,7 +9,7 @@ import type {
 import { validateApiKey } from '../utils/errors.js';
 import { APIClient } from './APIClient.js';
 
-export class AnthropicService extends APIClient implements LLMService {
+export class AnthropicService extends APIClient<LLMRequest, LLMResponse> implements LLMService {
   private client: Anthropic;
   private llmConfig: LLMConfig;
 

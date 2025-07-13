@@ -6,41 +6,46 @@ import {
   LLMRateLimitError,
   LLMNetworkError,
   type APIClientConfig,
-  type LLMRequest,
-  type LLMResponse,
 } from '../../src/types/index.js';
 
+// Define mock types for testing
+interface MockRequest {
+  data: string;
+  id?: string;
+}
+
+interface MockResponse {
+  result: string;
+  success: boolean;
+}
+
 // Create a concrete implementation for testing
-class TestAPIClient extends APIClient {
-  private mockFetchFn?: (request: LLMRequest) => Promise<LLMResponse>;
+class TestAPIClient extends APIClient<MockRequest, MockResponse> {
+  private mockFetchFn?: (request: MockRequest) => Promise<MockResponse>;
 
   constructor(config?: Partial<APIClientConfig>) {
     super(config);
   }
 
   // Implement the abstract fetch method
-  protected async fetch(request: LLMRequest): Promise<LLMResponse> {
+  protected async fetch(request: MockRequest): Promise<MockResponse> {
     if (this.mockFetchFn) {
       return this.mockFetchFn(request);
     }
     // Default mock response
     return {
-      content: 'Mock response',
-      usage: {
-        promptTokens: 10,
-        completionTokens: 10,
-        totalTokens: 20
-      }
+      result: `processed: ${request.data}`,
+      success: true
     };
   }
 
   // Allow setting mock fetch function for testing
-  public setMockFetch(fn: (request: LLMRequest) => Promise<LLMResponse>) {
+  public setMockFetch(fn: (request: MockRequest) => Promise<MockResponse>) {
     this.mockFetchFn = fn;
   }
 
   // Expose protected method for testing
-  public async testExecuteWithRetry(request: LLMRequest): Promise<LLMResponse> {
+  public async testExecuteWithRetry(request: MockRequest): Promise<MockResponse> {
     return this.executeWithRetry(request);
   }
 
@@ -80,16 +85,16 @@ describe('APIClient', () => {
 
   describe('executeWithRetry', () => {
     test('shouldReturnResultOnFirstSuccess', async () => {
-      const expectedResponse: LLMResponse = {
-        content: 'success',
-        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 }
+      const expectedResponse: MockResponse = {
+        result: 'success',
+        success: true
       };
       const mockFetch = vi.fn().mockResolvedValue(expectedResponse);
       apiClient.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: '123'
       };
       
       const result = await apiClient.testExecuteWithRetry(testRequest);
@@ -100,9 +105,9 @@ describe('APIClient', () => {
     });
 
     test('shouldRetryOnRetryableError', async () => {
-      const expectedResponse: LLMResponse = {
-        content: 'success after retry',
-        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 }
+      const expectedResponse: MockResponse = {
+        result: 'success after retry',
+        success: true
       };
       
       const rateLimitError = new Error('Rate limit exceeded');
@@ -114,9 +119,9 @@ describe('APIClient', () => {
       
       apiClient.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: '456'
       };
       
       const result = await apiClient.testExecuteWithRetry(testRequest);
@@ -132,9 +137,9 @@ describe('APIClient', () => {
       const mockFetch = vi.fn().mockRejectedValue(authError);
       apiClient.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: '789'
       };
 
       await expect(
@@ -149,9 +154,9 @@ describe('APIClient', () => {
       const mockFetch = vi.fn().mockRejectedValue(nonRetryableError);
       apiClient.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: 'error-test'
       };
 
       await expect(
@@ -171,9 +176,9 @@ describe('APIClient', () => {
       const clientWithFewRetries = new TestAPIClient({ retries: 2 });
       clientWithFewRetries.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: 'retry-test'
       };
 
       await expect(
@@ -191,9 +196,9 @@ describe('APIClient', () => {
       const clientWithFewRetries = new TestAPIClient({ retries: 1 });
       clientWithFewRetries.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: 'persistent-error-test'
       };
 
       await expect(
@@ -322,9 +327,9 @@ describe('APIClient', () => {
       const mockFetch = vi.fn().mockRejectedValue(new Error('Always fails'));
       client.setMockFetch(mockFetch);
 
-      const testRequest: LLMRequest = {
-        systemPrompt: 'Test system prompt',
-        userPrompt: 'Test user prompt'
+      const testRequest: MockRequest = {
+        data: 'test data',
+        id: 'config-test'
       };
 
       await expect(
