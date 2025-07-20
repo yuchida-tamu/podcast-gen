@@ -1,5 +1,5 @@
 {
-  "name": "podcast-gen",
+  "name": "@yuchida-tamu/podcast-gen",
   "version": "1.0.0",
   "description": "AI-Powered Monologue Podcast Generator",
   "main": "dist/cli.js",
