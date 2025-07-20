@@ -1,0 +1,79 @@
+import fs from 'fs';
+import { Transform, TransformCallback } from 'stream';
+import { pipeline } from 'stream/promises';
+import { promisify } from 'util';
+
+export class DataTransformer {
+  private readonly pipelineAsync: any;
+  constructor() {
+    this.pipelineAsync = promisify(pipeline);
+  }
+
+  async concatenate(inputFiles: string[], outputFile: string) {
+    // 1. Create the main output stream
+    const outputStream = fs.createWriteStream(outputFile);
+    //2. Loop through each input file with index (we need the index later)
+    for (let i = 0; i < inputFiles.length; i++) {
+      const inputStream = fs.createReadStream(inputFiles[i]);
+
+      const transform = new Transform();
+
+      await this.pipelineAsync(inputStream, transform, outputStream, {
+        end: false,
+      });
+    }
+
+    // Manually close the output stream
+    outputStream.end();
+
+    return new Promise<void>((resolve, reject) => {
+      outputStream.on('finish', resolve);
+      outputStream.on('error', reject);
+    });
+  }
+
+  createStripperTransform(isFirst: boolean, isLast: boolean) {
+    let headerStripped = isFirst;
+    let buffer = Buffer.alloc(0);
+    const ID3v2 = [0x49, 0x44, 0x33]; // The start tag of a file (mp3)
+    const ID3v1 = [0x54, 0x41, 0x47]; // The end tag of a file (mp3)
+    return new Transform({
+      transform: (
+        chunk: any,
+        encoding: BufferEncoding,
+        callback: TransformCallback
+      ) => {
+        buffer = Buffer.concat([buffer, chunk]);
+        if (!headerStripped && buffer.byteLength >= 10) {
+          if (
+            buffer[0] === ID3v2[0] &&
+            buffer[1] === ID3v2[1] &&
+            buffer[2] === ID3v2[2]
+          ) {
+            // Found ID3v2 tag!
+            const size =
+              (buffer[6] << 21) |
+              (buffer[7] << 14) |
+              (buffer[8] << 7) |
+              buffer[9];
+            const totalTagSize = size + 10; // +10 for the header itself
+
+            if (buffer.length >= totalTagSize) {
+              buffer = buffer.slice(totalTagSize);
+              headerStripped = true;
+            }
+          } else {
+            // no tag found
+            headerStripped = true;
+          }
+        }
+
+        if (headerStripped) {
+          callback(null, buffer);
+          buffer = Buffer.alloc(0);
+        }
+      },
+      flush: (callback) => {},
+    });
+  }
+}
