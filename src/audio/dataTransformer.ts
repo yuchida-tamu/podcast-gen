@@ -16,7 +16,9 @@ export class DataTransformer {
     for (let i = 0; i < inputFiles.length; i++) {
       const inputStream = fs.createReadStream(inputFiles[i]);
 
-      const transform = new Transform();
+      const isFirst = i === 0;
+      const isLast = i === inputFiles.length - 1;
+      const transform = this.createStripperTransform(isFirst, isLast);
 
       await this.pipelineAsync(inputStream, transform, outputStream, {
         end: false,
