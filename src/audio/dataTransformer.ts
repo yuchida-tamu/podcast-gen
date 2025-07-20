@@ -1,12 +1,9 @@
 import fs from 'fs';
 import { Transform, TransformCallback } from 'stream';
 import { pipeline } from 'stream/promises';
-import { promisify } from 'util';
 
-export class DataTransformer {
-  private readonly pipelineAsync: any;
+export class AudioDataTransformer {
   constructor() {
-    this.pipelineAsync = promisify(pipeline);
   }
 
   async concatenate(inputFiles: string[], outputFile: string) {
@@ -20,7 +17,7 @@ export class DataTransformer {
       const isLast = i === inputFiles.length - 1;
       const transform = this.createStripperTransform(isFirst, isLast);
 
-      await this.pipelineAsync(inputStream, transform, outputStream, {
+      await pipeline(inputStream, transform, outputStream, {
         end: false,
       });
     }
