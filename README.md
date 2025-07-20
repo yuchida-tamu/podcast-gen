@@ -1,11 +1,11 @@
-# MonologueCast 🎙️
+# PodcastGen 🎙️
 
 AI-Powered Monologue Podcast Generator
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-MonologueCast is a command-line application that generates natural-sounding podcast episodes featuring an AI narrator delivering engaging monologues. Users input a topic, and the system produces both a concatenated audio file and a structured JSON script of a thoughtful, balanced exploration following a narrative structure.
+PodcastGen is a command-line application that generates natural-sounding podcast episodes featuring an AI narrator delivering engaging monologues. Users input a topic, and the system produces both a concatenated audio file and a structured JSON script of a thoughtful, balanced exploration following a narrative structure.
 
 ## 🌟 Features
 
@@ -24,27 +24,27 @@ MonologueCast is a command-line application that generates natural-sounding podc
 - Node.js 18+ installed on your system
 - npm package manager
 - OpenAI API key (get one at [platform.openai.com](https://platform.openai.com/api-keys))
-- Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com))
 
 ### API Key Setup
 
 You can provide API keys in two ways:
 
 1. **Via CLI flag** (recommended for quick usage):
+
    ```bash
-   npx monologue-cast "topic" --openai-key sk-your-key-here
+   npx podcast-gen "topic" --openai-key sk-your-key-here
    ```
 
 2. **Via environment variables** (recommended for regular usage):
+
    ```bash
    export OPENAI_API_KEY=sk-your-key-here
-   export ANTHROPIC_API_KEY=sk-ant-your-key-here
    ```
-   
+
    Or create a `.env` file:
+
    ```env
    OPENAI_API_KEY=sk-your-key-here
-   ANTHROPIC_API_KEY=sk-ant-your-key-here
    ```
 
 ### Installation
@@ -52,24 +52,28 @@ You can provide API keys in two ways:
 #### For End Users (Recommended)
 
 No installation required! Just use npx:
+
 ```bash
-npx monologue-cast "Your topic here" --openai-key sk-your-key-here
+npx podcast-gen "Your topic here" --openai-key sk-your-key-here
 ```
 
 #### For Development
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd podcast-gen
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Set up environment variables:
+
    ```bash
    cp .env.example .env
    # Edit .env and add your API keys
@@ -85,45 +89,49 @@ npx monologue-cast "Your topic here" --openai-key sk-your-key-here
 #### Using npx (Recommended)
 
 **Option 1: Provide API key via flag**
+
 ```bash
-npx monologue-cast "Is universal basic income feasible?" --openai-key sk-your-key-here
+npx podcast-gen "Is universal basic income feasible?" --openai-key sk-your-key-here
 ```
 
 **Option 2: Use environment variables**
+
 ```bash
 export OPENAI_API_KEY=sk-your-key-here
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
-npx monologue-cast "Is universal basic income feasible?"
+npx podcast-gen "Is universal basic income feasible?"
 ```
 
 Generate a 10-minute podcast with custom output directory:
+
 ```bash
-npx monologue-cast "Climate change solutions" --duration 10 --output ./my-podcasts --openai-key sk-your-key-here
+npx podcast-gen "Climate change solutions" --duration 10 --output ./my-podcasts --openai-key sk-your-key-here
 ```
 
 Use existing script:
+
 ```bash
-npx monologue-cast "" --script ./path/to/script.json --openai-key sk-your-key-here
+npx podcast-gen "" --script ./path/to/script.json --openai-key sk-your-key-here
 ```
 
 #### Local Development
 
 For local development, you can also use:
+
 ```bash
 npm run dev "Topic" --openai-key sk-your-key-here
 ```
 
 Or set environment variables:
+
 ```bash
 export OPENAI_API_KEY=sk-your-key-here
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
 npm run dev "Topic"
 ```
 
 ### Command Options
 
 ```bash
-npx monologue-cast <topic> [options]
+npx podcast-gen <topic> [options]
 
 Arguments:
   topic                    Topic for the monologue podcast
@@ -213,13 +221,13 @@ src/
 ### Environment Setup
 
 1. Copy the environment template:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Add your API keys:
    ```env
-   ANTHROPIC_API_KEY=your_anthropic_key_here
    OPENAI_API_KEY=your_openai_key_here
    ```
 
@@ -240,42 +248,47 @@ npm run lint:fix   # Fix ESLint issues
 ### Manual Testing
 
 1. **Basic functionality test** (with API key flag):
+
    ```bash
-   npx monologue-cast "Should AI replace human creativity?" --openai-key sk-your-key
+   npx podcast-gen "Should AI replace human creativity?" --openai-key sk-your-key
    ```
 
 2. **Using environment variables**:
+
    ```bash
    export OPENAI_API_KEY=sk-your-key
-   export ANTHROPIC_API_KEY=sk-ant-your-key
-   npx monologue-cast "Should AI replace human creativity?"
+   npx podcast-gen "Should AI replace human creativity?"
    ```
 
 3. **Duration options test**:
+
    ```bash
-   npx monologue-cast "The future of work" --duration 10 --openai-key sk-your-key
+   npx podcast-gen "The future of work" --duration 10 --openai-key sk-your-key
    ```
 
 4. **Custom output directory test**:
+
    ```bash
-   npx monologue-cast "Space exploration ethics" --output ./test-output --openai-key sk-your-key
+   npx podcast-gen "Space exploration ethics" --output ./test-output --openai-key sk-your-key
    ```
 
 5. **Script file test**:
+
    ```bash
-   npx monologue-cast "" --script ./output/existing-script.json --openai-key sk-your-key
+   npx podcast-gen "" --script ./output/existing-script.json --openai-key sk-your-key
    ```
 
 6. **Error handling tests**:
+
    ```bash
    # Too short topic
-   npx monologue-cast "AI" --openai-key sk-your-key
-   
+   npx podcast-gen "AI" --openai-key sk-your-key
+
    # Invalid duration
-   npx monologue-cast "Philosophy of mind" --duration 7 --openai-key sk-your-key
-   
+   npx podcast-gen "Philosophy of mind" --duration 7 --openai-key sk-your-key
+
    # Missing API key
-   npx monologue-cast "Some topic"
+   npx podcast-gen "Some topic"
    ```
 
 ### Expected Behavior
@@ -313,18 +326,21 @@ We welcome contributions! Please follow these guidelines:
 ### Development Guidelines
 
 #### Code Style
+
 - Use ES6+ JavaScript features
 - Follow existing code patterns and structure
 - Add comments for complex logic
 - Use descriptive variable and function names
 
 #### Testing
+
 - Test all new features manually using the local testing instructions
 - Ensure error handling works correctly
 - Verify output file formats are correct
 - Test edge cases and invalid inputs
 
 #### Commit Messages
+
 - Use clear, descriptive commit messages
 - Start with a verb (Add, Fix, Update, etc.)
 - Keep the first line under 50 characters
@@ -378,4 +394,4 @@ If you encounter any issues or have questions:
 
 ---
 
-**Note**: This implementation uses real API integrations with OpenAI for text generation and audio synthesis, and Anthropic Claude for advanced language processing.
+**Note**: This implementation uses real API integrations with OpenAI for text generation and audio synthesis for advanced language processing.
