@@ -77,7 +77,24 @@ export class DataTransformer {
       },
       flush: (callback) => {
         if (isLast) {
+          callback(null, buffer);
+          return;
         }
+
+        if (buffer.byteLength < ID3v1TagLength) {
+          callback(null, buffer);
+          return;
+        }
+
+        if (
+          buffer[buffer.length - ID3v1TagLength] === ID3v1[0] &&
+          buffer[buffer.length - ID3v1TagLength + 1] === ID3v1[1] &&
+          buffer[buffer.length - ID3v1TagLength + 2] === ID3v1[2]
+        ) {
+          buffer = buffer.slice(0, buffer.length - ID3v1TagLength);
+        }
+
+        callback(null, buffer);
       },
     });
   }
