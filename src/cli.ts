@@ -2,10 +2,14 @@
 
 import { Command } from 'commander';
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
 import { generatePodcast } from './orchestrator.js';
 import type { CliOptions } from './types/index.js';
 import { handleError } from './utils/errors.js';
 import { showError } from './utils/progress.js';
+
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 // CLI setup - runs when this file is executed directly
   dotenv.config();
@@ -15,7 +19,7 @@ import { showError } from './utils/progress.js';
   program
     .name('podcast-gen')
     .description('AI-Powered Monologue Podcast Generator')
-    .version('1.0.0');
+    .version(packageJson.version);
 
   program
     .argument('<topic>', 'Topic for the monologue podcast')

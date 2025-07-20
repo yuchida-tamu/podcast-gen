@@ -1,6 +1,6 @@
 {
   "name": "@yuchida-tamu/podcast-gen",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "AI-Powered Monologue Podcast Generator",
   "main": "dist/cli.js",
   "type": "module",
@@ -17,8 +17,7 @@
     "type-check": "tsc --noEmit",
     "lint": "echo 'Linting not implemented yet'",
     "lint:fix": "echo 'Lint fix not implemented yet'",
-    "prepublishOnly": "npm run build",
-    "postpack": "rm -rf dist"
+    "prepublishOnly": "npm run build && chmod +x dist/cli.js"
   },
   "keywords": [
     "podcast",
