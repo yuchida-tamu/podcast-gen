@@ -23,8 +23,40 @@ MonologueCast is a command-line application that generates natural-sounding podc
 
 - Node.js 18+ installed on your system
 - npm package manager
+- OpenAI API key (get one at [platform.openai.com](https://platform.openai.com/api-keys))
+- Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com))
+
+### API Key Setup
+
+You can provide API keys in two ways:
+
+1. **Via CLI flag** (recommended for quick usage):
+   ```bash
+   npx monologue-cast "topic" --openai-key sk-your-key-here
+   ```
+
+2. **Via environment variables** (recommended for regular usage):
+   ```bash
+   export OPENAI_API_KEY=sk-your-key-here
+   export ANTHROPIC_API_KEY=sk-ant-your-key-here
+   ```
+   
+   Or create a `.env` file:
+   ```env
+   OPENAI_API_KEY=sk-your-key-here
+   ANTHROPIC_API_KEY=sk-ant-your-key-here
+   ```
 
 ### Installation
+
+#### For End Users (Recommended)
+
+No installation required! Just use npx:
+```bash
+npx monologue-cast "Your topic here" --openai-key sk-your-key-here
+```
+
+#### For Development
 
 1. Clone the repository:
    ```bash
@@ -43,27 +75,55 @@ MonologueCast is a command-line application that generates natural-sounding podc
    # Edit .env and add your API keys
    ```
 
+4. Build the project:
+   ```bash
+   npm run build
+   ```
+
 ### Basic Usage
 
-Generate a 5-minute podcast (default):
+#### Using npx (Recommended)
+
+**Option 1: Provide API key via flag**
 ```bash
-npm run dev "Is universal basic income feasible?"
+npx monologue-cast "Is universal basic income feasible?" --openai-key sk-your-key-here
+```
+
+**Option 2: Use environment variables**
+```bash
+export OPENAI_API_KEY=sk-your-key-here
+export ANTHROPIC_API_KEY=sk-ant-your-key-here
+npx monologue-cast "Is universal basic income feasible?"
 ```
 
 Generate a 10-minute podcast with custom output directory:
 ```bash
-npm run dev "Climate change solutions" --duration 10 --output ./my-podcasts
+npx monologue-cast "Climate change solutions" --duration 10 --output ./my-podcasts --openai-key sk-your-key-here
 ```
 
 Use existing script:
 ```bash
-npm run dev "" --script ./path/to/script.json
+npx monologue-cast "" --script ./path/to/script.json --openai-key sk-your-key-here
+```
+
+#### Local Development
+
+For local development, you can also use:
+```bash
+npm run dev "Topic" --openai-key sk-your-key-here
+```
+
+Or set environment variables:
+```bash
+export OPENAI_API_KEY=sk-your-key-here
+export ANTHROPIC_API_KEY=sk-ant-your-key-here
+npm run dev "Topic"
 ```
 
 ### Command Options
 
 ```bash
-podcast-gen <topic> [options]
+npx monologue-cast <topic> [options]
 
 Arguments:
   topic                    Topic for the monologue podcast
@@ -72,6 +132,7 @@ Options:
   -d, --duration <minutes> Duration in minutes (5 or 10) (default: "5")
   -o, --output <path>      Output directory (default: "./output")
   -s, --script <path>      Use existing script file instead of generating new content
+  --openai-key <key>       OpenAI API key (alternatively set OPENAI_API_KEY env var)
   -h, --help              Display help for command
 ```
 
@@ -178,33 +239,43 @@ npm run lint:fix   # Fix ESLint issues
 
 ### Manual Testing
 
-1. **Basic functionality test**:
+1. **Basic functionality test** (with API key flag):
    ```bash
-   npm run dev "Should AI replace human creativity?"
+   npx monologue-cast "Should AI replace human creativity?" --openai-key sk-your-key
    ```
 
-2. **Duration options test**:
+2. **Using environment variables**:
    ```bash
-   npm run dev "The future of work" --duration 10
+   export OPENAI_API_KEY=sk-your-key
+   export ANTHROPIC_API_KEY=sk-ant-your-key
+   npx monologue-cast "Should AI replace human creativity?"
    ```
 
-3. **Custom output directory test**:
+3. **Duration options test**:
    ```bash
-   npm run dev "Space exploration ethics" --output ./test-output
+   npx monologue-cast "The future of work" --duration 10 --openai-key sk-your-key
    ```
 
-4. **Script file test**:
+4. **Custom output directory test**:
    ```bash
-   npm run dev "" --script ./output/existing-script.json
+   npx monologue-cast "Space exploration ethics" --output ./test-output --openai-key sk-your-key
    ```
 
-5. **Error handling tests**:
+5. **Script file test**:
+   ```bash
+   npx monologue-cast "" --script ./output/existing-script.json --openai-key sk-your-key
+   ```
+
+6. **Error handling tests**:
    ```bash
    # Too short topic
-   npm run dev "AI"
+   npx monologue-cast "AI" --openai-key sk-your-key
    
    # Invalid duration
-   npm run dev "Philosophy of mind" --duration 7
+   npx monologue-cast "Philosophy of mind" --duration 7 --openai-key sk-your-key
+   
+   # Missing API key
+   npx monologue-cast "Some topic"
    ```
 
 ### Expected Behavior

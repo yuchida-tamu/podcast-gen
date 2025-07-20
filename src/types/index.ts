@@ -57,6 +57,7 @@ export interface CliOptions {
   duration: string;
   output: string;
   script: string;
+  openaiKey?: string;
 }
 
 // Progress types

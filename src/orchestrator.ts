@@ -3,10 +3,10 @@ import OpenAI from 'openai';
 import path from 'path';
 import { AudioDataTransformer } from './audio/dataTransformer.js';
 import { AudioSynthesizer } from './audio/synthesizer.js';
-import { OpenAIService } from './llm/OpenAIService';
+import { OpenAIService } from './llm/OpenAIService.js';
 import { MonologueEngine } from './monologue/engine.js';
 import { ScriptFormatter } from './script/formatter.js';
-import { CliOptions } from './types';
+import { CliOptions } from './types/index.js';
 import {
   handleError,
   validateApiKey,

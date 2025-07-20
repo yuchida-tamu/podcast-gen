@@ -139,24 +139,32 @@ describe('validateDuration', () => {
 });
 
 describe('validateApiKey', () => {
-  let originalApiKey: string | undefined;
+  let originalAnthropicKey: string | undefined;
+  let originalOpenAiKey: string | undefined;
 
   beforeEach(() => {
-    // Save original API key
-    originalApiKey = process.env.ANTHROPIC_API_KEY;
+    // Store the original API keys
+    originalAnthropicKey = process.env.ANTHROPIC_API_KEY;
+    originalOpenAiKey = process.env.OPENAI_API_KEY;
   });
 
   afterEach(() => {
-    // Restore original API key
-    if (originalApiKey !== undefined) {
-      process.env.ANTHROPIC_API_KEY = originalApiKey;
+    // Restore original API keys
+    if (originalAnthropicKey !== undefined) {
+      process.env.ANTHROPIC_API_KEY = originalAnthropicKey;
     } else {
       delete process.env.ANTHROPIC_API_KEY;
+    }
+    if (originalOpenAiKey !== undefined) {
+      process.env.OPENAI_API_KEY = originalOpenAiKey;
+    } else {
+      delete process.env.OPENAI_API_KEY;
     }
   });
 
   test('shouldAcceptValidApiKey', () => {
-    // Given: A valid API key
+    // Given: Valid API keys
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key';
     process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-here';
 
     // When/Then: Should not throw
@@ -164,15 +172,47 @@ describe('validateApiKey', () => {
   });
 
   test('shouldAcceptYskApiKey', () => {
-    // Given: A valid ysk API key
+    // Given: Valid API keys including ysk Anthropic key
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key';
     process.env.ANTHROPIC_API_KEY = 'ysk-ant-api03-test-key-here';
 
     // When/Then: Should not throw
     expect(() => validateApiKey()).not.toThrow();
   });
 
-  test('shouldRejectMissingApiKey', () => {
-    // Given: No API key set
+  test('shouldRejectMissingOpenAIApiKey', () => {
+    // Given: No OpenAI API key set
+    delete process.env.OPENAI_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-here';
+
+    // When/Then: Should throw PodcastGenerationError
+    expect(() => validateApiKey()).toThrow(PodcastGenerationError);
+    expect(() => validateApiKey()).toThrow('OpenAI API key is required');
+  });
+
+  test('shouldRejectInvalidOpenAIApiKeyFormat', () => {
+    // Given: An invalid OpenAI API key format
+    process.env.OPENAI_API_KEY = 'invalid-key-format';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-here';
+
+    // When/Then: Should throw PodcastGenerationError
+    expect(() => validateApiKey()).toThrow(PodcastGenerationError);
+    expect(() => validateApiKey()).toThrow('Invalid OpenAI API key format');
+  });
+
+  test('shouldRejectEmptyOpenAIApiKey', () => {
+    // Given: An empty OpenAI API key
+    process.env.OPENAI_API_KEY = '';
+    process.env.ANTHROPIC_API_KEY = 'sk-ant-api03-test-key-here';
+
+    // When/Then: Should throw PodcastGenerationError
+    expect(() => validateApiKey()).toThrow(PodcastGenerationError);
+    expect(() => validateApiKey()).toThrow('OpenAI API key is required');
+  });
+
+  test('shouldRejectMissingAnthropicApiKey', () => {
+    // Given: No Anthropic API key set but OpenAI key is set
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key';
     delete process.env.ANTHROPIC_API_KEY;
 
     // When/Then: Should throw PodcastGenerationError
@@ -180,8 +220,9 @@ describe('validateApiKey', () => {
     expect(() => validateApiKey()).toThrow('ANTHROPIC_API_KEY environment variable is required');
   });
 
-  test('shouldRejectInvalidApiKeyFormat', () => {
-    // Given: An invalid API key format
+  test('shouldRejectInvalidAnthropicApiKeyFormat', () => {
+    // Given: An invalid Anthropic API key format
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key';
     process.env.ANTHROPIC_API_KEY = 'invalid-key-format';
 
     // When/Then: Should throw PodcastGenerationError
@@ -189,8 +230,9 @@ describe('validateApiKey', () => {
     expect(() => validateApiKey()).toThrow('Invalid ANTHROPIC_API_KEY format');
   });
 
-  test('shouldRejectEmptyApiKey', () => {
-    // Given: An empty API key
+  test('shouldRejectEmptyAnthropicApiKey', () => {
+    // Given: An empty Anthropic API key
+    process.env.OPENAI_API_KEY = 'sk-test-openai-key';
     process.env.ANTHROPIC_API_KEY = '';
 
     // When/Then: Should throw PodcastGenerationError
