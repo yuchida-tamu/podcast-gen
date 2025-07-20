@@ -32,7 +32,7 @@ You can provide API keys in two ways:
 1. **Via CLI flag** (recommended for quick usage):
 
    ```bash
-   npx podcast-gen "topic" --openai-key sk-your-key-here
+   npx @yuchida-tamu/podcast-gen@latest "topic" --openai-key sk-your-key-here
    ```
 
 2. **Via environment variables** (recommended for regular usage):
@@ -54,8 +54,10 @@ You can provide API keys in two ways:
 No installation required! Just use npx:
 
 ```bash
-npx podcast-gen "Your topic here" --openai-key sk-your-key-here
+npx @yuchida-tamu/podcast-gen@latest "Your topic here" --openai-key sk-your-key-here
 ```
+
+> **Note**: Use `@latest` to ensure you get the most recent version of the package.
 
 #### For Development
 
@@ -91,26 +93,26 @@ npx podcast-gen "Your topic here" --openai-key sk-your-key-here
 **Option 1: Provide API key via flag**
 
 ```bash
-npx podcast-gen "Is universal basic income feasible?" --openai-key sk-your-key-here
+npx @yuchida-tamu/podcast-gen "Is universal basic income feasible?" --openai-key sk-your-key-here
 ```
 
 **Option 2: Use environment variables**
 
 ```bash
 export OPENAI_API_KEY=sk-your-key-here
-npx podcast-gen "Is universal basic income feasible?"
+npx @yuchida-tamu/podcast-gen "Is universal basic income feasible?"
 ```
 
 Generate a 10-minute podcast with custom output directory:
 
 ```bash
-npx podcast-gen "Climate change solutions" --duration 10 --output ./my-podcasts --openai-key sk-your-key-here
+npx @yuchida-tamu/podcast-gen "Climate change solutions" --duration 10 --output ./my-podcasts --openai-key sk-your-key-here
 ```
 
 Use existing script:
 
 ```bash
-npx podcast-gen "" --script ./path/to/script.json --openai-key sk-your-key-here
+npx @yuchida-tamu/podcast-gen "" --script ./path/to/script.json --openai-key sk-your-key-here
 ```
 
 #### Local Development
@@ -131,7 +133,7 @@ npm run dev "Topic"
 ### Command Options
 
 ```bash
-npx podcast-gen <topic> [options]
+npx @yuchida-tamu/podcast-gen <topic> [options]
 
 Arguments:
   topic                    Topic for the monologue podcast
@@ -250,45 +252,45 @@ npm run lint:fix   # Fix ESLint issues
 1. **Basic functionality test** (with API key flag):
 
    ```bash
-   npx podcast-gen "Should AI replace human creativity?" --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "Should AI replace human creativity?" --openai-key sk-your-key
    ```
 
 2. **Using environment variables**:
 
    ```bash
    export OPENAI_API_KEY=sk-your-key
-   npx podcast-gen "Should AI replace human creativity?"
+   npx @yuchida-tamu/podcast-gen "Should AI replace human creativity?"
    ```
 
 3. **Duration options test**:
 
    ```bash
-   npx podcast-gen "The future of work" --duration 10 --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "The future of work" --duration 10 --openai-key sk-your-key
    ```
 
 4. **Custom output directory test**:
 
    ```bash
-   npx podcast-gen "Space exploration ethics" --output ./test-output --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "Space exploration ethics" --output ./test-output --openai-key sk-your-key
    ```
 
 5. **Script file test**:
 
    ```bash
-   npx podcast-gen "" --script ./output/existing-script.json --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "" --script ./output/existing-script.json --openai-key sk-your-key
    ```
 
 6. **Error handling tests**:
 
    ```bash
    # Too short topic
-   npx podcast-gen "AI" --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "AI" --openai-key sk-your-key
 
    # Invalid duration
-   npx podcast-gen "Philosophy of mind" --duration 7 --openai-key sk-your-key
+   npx @yuchida-tamu/podcast-gen "Philosophy of mind" --duration 7 --openai-key sk-your-key
 
    # Missing API key
-   npx podcast-gen "Some topic"
+   npx @yuchida-tamu/podcast-gen "Some topic"
    ```
 
 ### Expected Behavior
