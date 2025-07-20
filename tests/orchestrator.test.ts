@@ -7,6 +7,7 @@ describe('CLI - generatePodcast', () => {
   let mockMonologueEngine: any;
   let mockScriptFormatter: any;
   let mockAudioSynthesizer: any;
+  let mockAudioDataTransformer: any;
 
   beforeEach(() => {
     // Set up environment variables for API keys
@@ -39,6 +40,10 @@ describe('CLI - generatePodcast', () => {
         ]),
     };
 
+    mockAudioDataTransformer = {
+      concatenate: vi.fn().mockResolvedValue(undefined),
+    };
+
     // Mock dependencies
     mockDeps = {
       fs: {
@@ -58,6 +63,9 @@ describe('CLI - generatePodcast', () => {
       AudioSynthesizer: vi
         .fn()
         .mockImplementation(() => mockAudioSynthesizer) as any,
+      AudioDataTransformer: vi
+        .fn()
+        .mockImplementation(() => mockAudioDataTransformer) as any,
       validateTopic: vi.fn() as any,
       validateDuration: vi.fn() as any,
       validateApiKey: vi.fn() as any,
@@ -114,6 +122,7 @@ describe('CLI - generatePodcast', () => {
       expect(mockDeps.MonologueEngine).toHaveBeenCalled();
       expect(mockDeps.ScriptFormatter).toHaveBeenCalled();
       expect(mockDeps.AudioSynthesizer).toHaveBeenCalled();
+      expect(mockDeps.AudioDataTransformer).toHaveBeenCalled();
     });
 
     test('shouldExecuteGenerationStepsInCorrectOrder', async () => {
@@ -126,11 +135,12 @@ describe('CLI - generatePodcast', () => {
 
       // Then: Steps should be called in correct order
       const stepCalls = (mockDeps.showStep as any).mock.calls;
-      expect(stepCalls).toHaveLength(4);
-      expect(stepCalls[0]).toEqual([1, 4, 'Analyzing topic...']);
-      expect(stepCalls[1]).toEqual([2, 4, 'Creating narrative content...']);
-      expect(stepCalls[2]).toEqual([3, 4, 'Formatting script...']);
-      expect(stepCalls[3]).toEqual([4, 4, 'Synthesizing voice...']);
+      expect(stepCalls).toHaveLength(5);
+      expect(stepCalls[0]).toEqual([1, 5, 'Analyzing topic...']);
+      expect(stepCalls[1]).toEqual([2, 5, 'Creating narrative content...']);
+      expect(stepCalls[2]).toEqual([3, 5, 'Formatting script...']);
+      expect(stepCalls[3]).toEqual([4, 5, 'Synthesizing voice...']);
+      expect(stepCalls[4]).toEqual([5, 5, 'Combining audio segments...']);
 
       // And: Methods should be called in correct order
       expect(mockMonologueEngine.generateMonologue).toHaveBeenCalledWith(
@@ -149,6 +159,13 @@ describe('CLI - generatePodcast', () => {
         'machine learning'
       );
       expect(mockAudioSynthesizer.synthesizeAudio).toHaveBeenCalled();
+      expect(mockAudioDataTransformer.concatenate).toHaveBeenCalledWith(
+        [
+          '/path/to/audio_segment_001.mp3',
+          '/path/to/audio_segment_002.mp3',
+        ],
+        '/resolved/output/path/test-topic_2025-07-12.mp3'
+      );
     });
 
     test('shouldWriteFilesToCorrectPaths', async () => {
@@ -190,6 +207,10 @@ describe('CLI - generatePodcast', () => {
       expect(mockDeps.showFileOutput).toHaveBeenCalledWith(
         'script',
         '/resolved/output/path/test-topic_2025-07-12.json'
+      );
+      expect(mockDeps.showFileOutput).toHaveBeenCalledWith(
+        'audio',
+        '/resolved/output/path/test-topic_2025-07-12.mp3'
       );
       expect(mockDeps.showFileOutput).toHaveBeenCalledWith(
         'audio segment 1',
@@ -331,13 +352,13 @@ describe('CLI - generatePodcast', () => {
       // And: Should have shown step 1
       expect(mockDeps.showStep).toHaveBeenCalledWith(
         1,
-        4,
+        5,
         'Analyzing topic...'
       );
       // But: Should not have proceeded to step 2
       expect(mockDeps.showStep).not.toHaveBeenCalledWith(
         2,
-        4,
+        5,
         'Creating narrative content...'
       );
     });
@@ -358,7 +379,7 @@ describe('CLI - generatePodcast', () => {
       // And: Should have completed step 1 but failed at step 2
       expect(mockDeps.showStep).toHaveBeenCalledWith(
         2,
-        4,
+        5,
         'Creating narrative content...'
       );
     });
@@ -391,8 +412,39 @@ describe('CLI - generatePodcast', () => {
       // And: Should have completed step 3 but failed at step 4
       expect(mockDeps.showStep).toHaveBeenCalledWith(
         4,
-        4,
+        5,
         'Synthesizing voice...'
+      );
+    });
+
+    test('shouldCallHandleErrorWhenAudioConcatenationFails', async () => {
+      // Given: AudioDataTransformer that throws
+      const topic = 'test';
+      const options: CliOptions = { duration: '5', output: './output', script: '' };
+      mockAudioDataTransformer.concatenate.mockRejectedValue(
+        new Error('Concatenation failed')
+      );
+
+      // When: Generating podcast
+      await generatePodcast(topic, options, mockDeps);
+
+      // Then: Should have completed step 4 but failed at step 5
+      expect(mockDeps.showStep).toHaveBeenCalledWith(
+        5,
+        5,
+        'Combining audio segments...'
+      );
+      expect(mockAudioDataTransformer.concatenate).toHaveBeenCalledWith(
+        [
+          '/path/to/audio_segment_001.mp3',
+          '/path/to/audio_segment_002.mp3',
+        ],
+        '/resolved/output/path/test-topic_2025-07-12.mp3'
+      );
+      expect(mockDeps.handleError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Failed to concatenate audio segments: Error: Concatenation failed'
+        })
       );
     });
   });
