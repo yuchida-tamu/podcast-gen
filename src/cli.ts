@@ -7,8 +7,7 @@ import type { CliOptions } from './types/index.js';
 import { handleError } from './utils/errors.js';
 import { showError } from './utils/progress.js';
 
-// CLI setup - only runs when this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI setup - runs when this file is executed directly
   dotenv.config();
 
   const program = new Command();
@@ -39,4 +38,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
 
   program.parse();
-}

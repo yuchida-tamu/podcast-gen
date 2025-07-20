@@ -17,7 +17,10 @@
       "Bash(npm run test:coverage:*)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(podcast-gen:*)"
     ],
     "deny": []
   }
