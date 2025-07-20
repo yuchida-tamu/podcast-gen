@@ -20,7 +20,8 @@
       "Bash(grep:*)",
       "Bash(npx:*)",
       "Bash(ls:*)",
-      "Bash(podcast-gen:*)"
+      "Bash(podcast-gen:*)",
+      "Bash(git log:*)"
     ],
     "deny": []
   }
