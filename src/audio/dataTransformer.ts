@@ -37,6 +37,8 @@ export class DataTransformer {
     let buffer = Buffer.alloc(0);
     const ID3v2 = [0x49, 0x44, 0x33]; // The start tag of a file (mp3)
     const ID3v1 = [0x54, 0x41, 0x47]; // The end tag of a file (mp3)
+    const ID3v2TagLength = 10; // bytes
+    const ID3v1TagLength = 128; // bytes
     return new Transform({
       transform: (
         chunk: any,
@@ -44,7 +46,7 @@ export class DataTransformer {
         callback: TransformCallback
       ) => {
         buffer = Buffer.concat([buffer, chunk]);
-        if (!headerStripped && buffer.byteLength >= 10) {
+        if (!headerStripped && buffer.byteLength >= ID3v2TagLength) {
           if (
             buffer[0] === ID3v2[0] &&
             buffer[1] === ID3v2[1] &&
@@ -73,7 +75,10 @@ export class DataTransformer {
           buffer = Buffer.alloc(0);
         }
       },
-      flush: (callback) => {},
+      flush: (callback) => {
+        if (isLast) {
+        }
+      },
     });
   }
 }
