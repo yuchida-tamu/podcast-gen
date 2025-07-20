@@ -30,7 +30,7 @@
     "openai",
     "generator"
   ],
-  "author": "",
+  "author": "Yuta Uchida <yuchida4dev@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
