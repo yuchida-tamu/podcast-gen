@@ -1,17 +1,18 @@
-# DialecticCast 🎙️
+# MonologueCast 🎙️
 
-AI-Powered Dialectical Podcast Generator
+AI-Powered Monologue Podcast Generator
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-DialecticCast is a command-line application that generates natural-sounding podcast episodes featuring an AI narrator delivering engaging monologues. Users input a topic, and the system produces both an audio file and a structured JSON script of a thoughtful, balanced exploration following a narrative structure.
+MonologueCast is a command-line application that generates natural-sounding podcast episodes featuring an AI narrator delivering engaging monologues. Users input a topic, and the system produces both a concatenated audio file and a structured JSON script of a thoughtful, balanced exploration following a narrative structure.
 
 ## 🌟 Features
 
 - **Natural Monologue Generation**: Single AI narrator delivers engaging, balanced explorations
 - **Narrative Structure**: Follows introduction-exploration-conclusion flow
-- **JSON Output Format**: Generates structured JSON scripts and MP3 audio files
+- **JSON Output Format**: Generates structured JSON scripts with timestamps and metadata
+- **Audio Concatenation**: Automatically combines audio segments into a single MP3 file
 - **Flexible Duration**: Support for 5 or 10-minute podcast episodes
 - **CLI Interface**: Simple command-line interface with progress indicators
 - **Error Handling**: Robust validation and helpful error messages
@@ -36,21 +37,27 @@ DialecticCast is a command-line application that generates natural-sounding podc
    npm install
    ```
 
-3. Make the CLI executable:
+3. Set up environment variables:
    ```bash
-   chmod +x src/cli.js
+   cp .env.example .env
+   # Edit .env and add your API keys
    ```
 
 ### Basic Usage
 
 Generate a 5-minute podcast (default):
 ```bash
-node src/cli.js "Is universal basic income feasible?"
+npm run dev "Is universal basic income feasible?"
 ```
 
 Generate a 10-minute podcast with custom output directory:
 ```bash
-node src/cli.js "Climate change solutions" --duration 10 --output ./my-podcasts
+npm run dev "Climate change solutions" --duration 10 --output ./my-podcasts
+```
+
+Use existing script:
+```bash
+npm run dev "" --script ./path/to/script.json
 ```
 
 ### Command Options
@@ -59,44 +66,62 @@ node src/cli.js "Climate change solutions" --duration 10 --output ./my-podcasts
 podcast-gen <topic> [options]
 
 Arguments:
-  topic                    Topic for the dialectical podcast
+  topic                    Topic for the monologue podcast
 
 Options:
   -d, --duration <minutes> Duration in minutes (5 or 10) (default: "5")
   -o, --output <path>      Output directory (default: "./output")
+  -s, --script <path>      Use existing script file instead of generating new content
   -h, --help              Display help for command
 ```
 
 ## 📁 Output Files
 
-The generator creates two files for each podcast:
+The generator creates multiple files for each podcast:
 
-- **Script**: `topic-slug_YYYY-MM-DD.md` - Markdown transcript with timestamps
-- **Audio**: `topic-slug_YYYY-MM-DD.mp3` - MP3 audio file
+- **Script**: `topic-slug_YYYY-MM-DD.json` - Structured JSON script with timestamps and metadata
+- **Audio**: `topic-slug_YYYY-MM-DD.mp3` - Final concatenated MP3 audio file
+- **Segments**: `topic-slug_YYYY-MM-DD_segment_001.mp3` - Individual audio segments
 
 ### Example Output Structure
 
 ```
 output/
-├── is-universal-basic-income-feasible_2025-07-07.md
+├── is-universal-basic-income-feasible_2025-07-07.json
 ├── is-universal-basic-income-feasible_2025-07-07.mp3
-├── climate-change-solutions_2025-07-07.md
-└── climate-change-solutions_2025-07-07.mp3
+├── is-universal-basic-income-feasible_2025-07-07_segment_001.mp3
+├── is-universal-basic-income-feasible_2025-07-07_segment_002.mp3
+├── climate-change-solutions_2025-07-07.json
+├── climate-change-solutions_2025-07-07.mp3
+├── climate-change-solutions_2025-07-07_segment_001.mp3
+└── climate-change-solutions_2025-07-07_segment_002.mp3
 ```
 
 ## 📋 Script Format
 
-Generated transcripts follow this format:
+Generated JSON scripts follow this structure:
 
-```markdown
-# Topic Title
-Generated: 2025-07-07 14:30
-
-[00:00] Alex: [thoughtful] You know, I've been thinking about this topic...
-
-[00:06] Jordan: [curious] Really? I'm not so sure about that. What makes you think so?
-
-[00:13] Alex: [confident] Fair point, but hear me out...
+```json
+{
+  "title": "Is Universal Basic Income Feasible?",
+  "generated": "2025-07-07T14:30:00Z",
+  "duration": 300,
+  "segments": [
+    {
+      "text": "You know, I've been thinking about this topic...",
+      "timestamp": "00:00",
+      "duration": 15,
+      "emotion": "thoughtful"
+    }
+  ],
+  "metadata": {
+    "topic": "Is Universal Basic Income Feasible?",
+    "totalSegments": 8,
+    "estimatedDuration": 300,
+    "format": "monologue",
+    "version": "1.0.0"
+  }
+}
 ```
 
 ## 🛠️ Development
@@ -106,15 +131,22 @@ Generated: 2025-07-07 14:30
 ```
 src/
 ├── cli.js              # Main CLI entry point
-├── dialogue/           # Dialogue generation logic
-│   └── engine.js       # Mock dialogue generation
+├── orchestrator.ts     # Main podcast generation workflow
+├── monologue/          # Monologue generation logic
+│   └── engine.ts       # Core monologue generation
+├── llm/                # Language model services
+│   ├── OpenAIService.ts # OpenAI integration
+│   └── APIClient.ts    # Base API client with retry logic
 ├── script/             # Script formatting
-│   └── formatter.js    # Markdown formatting with timestamps
-├── audio/              # Audio synthesis
-│   └── synthesizer.js  # Mock MP3 generation
+│   └── formatter.ts    # JSON formatting with timestamps
+├── audio/              # Audio synthesis and processing
+│   ├── synthesizer.ts  # OpenAI TTS integration
+│   └── dataTransformer.ts # MP3 concatenation and processing
+├── types/              # TypeScript type definitions
+│   └── index.ts        # Shared types
 └── utils/              # Shared utilities
-    ├── progress.js     # Progress indicators
-    └── errors.js       # Error handling
+    ├── progress.ts     # Progress indicators
+    └── errors.ts       # Error handling
 ```
 
 ### Environment Setup
@@ -124,20 +156,22 @@ src/
    cp .env.example .env
    ```
 
-2. Add your API keys (for future real API integration):
+2. Add your API keys:
    ```env
+   ANTHROPIC_API_KEY=your_anthropic_key_here
    OPENAI_API_KEY=your_openai_key_here
-   ELEVENLABS_API_KEY=your_elevenlabs_key_here
    ```
 
 ### Available Scripts
 
 ```bash
 npm run dev        # Run in development mode
-npm run build      # Build the project (placeholder)
-npm run start      # Run the application
-npm test           # Run tests (placeholder)
-npm run lint       # Run linting (placeholder)
+npm run build      # Build the project
+npm run start      # Run the built application
+npm test           # Run all tests
+npm run test:watch # Run tests in watch mode
+npm run lint       # Run ESLint
+npm run lint:fix   # Fix ESLint issues
 ```
 
 ## 🧪 Testing Locally
@@ -146,35 +180,41 @@ npm run lint       # Run linting (placeholder)
 
 1. **Basic functionality test**:
    ```bash
-   node src/cli.js "Should AI replace human creativity?"
+   npm run dev "Should AI replace human creativity?"
    ```
 
 2. **Duration options test**:
    ```bash
-   node src/cli.js "The future of work" --duration 10
+   npm run dev "The future of work" --duration 10
    ```
 
 3. **Custom output directory test**:
    ```bash
-   node src/cli.js "Space exploration ethics" --output ./test-output
+   npm run dev "Space exploration ethics" --output ./test-output
    ```
 
-4. **Error handling tests**:
+4. **Script file test**:
+   ```bash
+   npm run dev "" --script ./output/existing-script.json
+   ```
+
+5. **Error handling tests**:
    ```bash
    # Too short topic
-   node src/cli.js "AI"
+   npm run dev "AI"
    
    # Invalid duration
-   node src/cli.js "Philosophy of mind" --duration 7
+   npm run dev "Philosophy of mind" --duration 7
    ```
 
 ### Expected Behavior
 
-- ✅ Successful generation should show progress steps (1/4 → 4/4)
+- ✅ Successful generation should show progress steps (1/5 → 5/5)
 - ✅ Files should be created in the specified output directory
-- ✅ Script files should contain properly formatted dialogue
-- ✅ Audio files should be valid MP3 placeholders
+- ✅ Script files should contain properly formatted JSON with timestamps
+- ✅ Audio files should be concatenated MP3 files with individual segments
 - ✅ Error messages should be helpful and descriptive
+- ✅ Audio concatenation should eliminate noise between segments
 
 ### Validation Checklist
 
@@ -229,13 +269,14 @@ We welcome contributions! Please follow these guidelines:
 
 ### Future Enhancement Areas
 
-- Real API integration (OpenAI/Anthropic for dialogue, ElevenLabs for audio)
-- Additional agent personalities and voices
+- Additional voice options and personalities
 - Background music and sound effects
 - Web interface
 - Multi-language support
 - Custom voice cloning
 - Batch processing capabilities
+- Real-time streaming generation
+- Enhanced audio post-processing
 
 ### Code Review Process
 
@@ -252,7 +293,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built with Node.js and Commander.js
-- Inspired by dialectical philosophy and debate structures
+- Inspired by thoughtful, reflective monologue formats
 - Designed for educational and creative content generation
 
 ## 📞 Support
@@ -266,4 +307,4 @@ If you encounter any issues or have questions:
 
 ---
 
-**Note**: This is currently a mock implementation. Real API integration for dialogue generation and audio synthesis is planned for future releases.
+**Note**: This implementation uses real API integrations with OpenAI for text generation and audio synthesis, and Anthropic Claude for advanced language processing.
